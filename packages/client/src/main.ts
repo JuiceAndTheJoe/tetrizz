@@ -1,6 +1,9 @@
 import Phaser from 'phaser';
 import { BootScene } from './scenes/BootScene.ts';
 import { GameScene } from './scenes/GameScene.ts';
+import { MenuScene } from './scenes/MenuScene.ts';
+import { LobbyScene } from './scenes/LobbyScene.ts';
+import { VersusScene } from './scenes/VersusScene.ts';
 
 const BOARD_W = 300;
 const BOARD_H = 600;
@@ -16,7 +19,7 @@ const game = new Phaser.Game({
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_HORIZONTALLY,
   },
-  scene: [BootScene, GameScene],
+  scene: [BootScene, MenuScene, GameScene, LobbyScene, VersusScene],
   render: {
     antialias: true,
     pixelArt: false,

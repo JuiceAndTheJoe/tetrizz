@@ -21,6 +21,6 @@ export class BootScene extends Phaser.Scene {
     try {
       await document.fonts.ready;
     } catch { /* ignore */ }
-    this.scene.start('Game');
+    this.scene.start('Menu');
   }
 }

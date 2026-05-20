@@ -50,8 +50,14 @@ export class GameScene extends Phaser.Scene {
 
   private unbindInput?: () => void;
 
+  private autoStartRequested = false;
+
   constructor() {
     super('Game');
+  }
+
+  init(data?: { autoStart?: boolean }): void {
+    this.autoStartRequested = !!data?.autoStart;
   }
 
   create(): void {
@@ -106,6 +112,8 @@ export class GameScene extends Phaser.Scene {
     void fetchLeaderboard();
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.unbindInput?.());
+
+    if (this.autoStartRequested) this.startGame();
   }
 
   override update(_time: number, deltaMs: number): void {

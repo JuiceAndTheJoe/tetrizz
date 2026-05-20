@@ -488,6 +488,34 @@ body[class*="fx-"] .brand { animation-delay: -.025s; }
 }
 .btn:hover { transform: translateY(-1px); }
 .btn:active { transform: translateY(1px); }
+.btn-vs {
+  margin-top: 10px;
+  background: linear-gradient(180deg, #29e4ff, #0a6e8c);
+  box-shadow: 0 10px 30px rgba(41, 228, 255, .35), inset 0 1px 0 rgba(255, 255, 255, .3);
+}
+
+body.versus-stage .left-col,
+body.versus-stage .right-col { display: none !important; }
+body.versus-stage .app { grid-template-columns: minmax(0, 1fr); padding: 12px; }
+.versus-hud {
+  display: flex; justify-content: space-between; align-items: center; gap: 18px;
+  font-family: "JetBrains Mono", monospace; font-size: 12px;
+  letter-spacing: .18em; text-transform: uppercase;
+  color: var(--ink-3);
+  padding: 8px 4px;
+}
+.versus-hud .vs-me   { color: var(--ink); }
+.versus-hud .vs-opp  { color: var(--cyan); }
+.versus-hud .vs-meter {
+  flex: 1; height: 8px; border-radius: 99px;
+  background: rgba(255,255,255,.07); border: 1px solid var(--panel-bd);
+  overflow: hidden; position: relative; max-width: 200px;
+}
+.versus-hud .vs-meter > i {
+  display: block; height: 100%; width: 0%;
+  background: linear-gradient(90deg, var(--hot), var(--yel) 60%, var(--cyan));
+  transition: width .15s ease;
+}
 
 .mini-board {
   display: flex; justify-content: center; align-items: center;
