@@ -38,6 +38,8 @@ export function setScoreboard(s: ScoreboardState): void {
   const inLvl = s.lines % LINES_PER_LEVEL;
   els.lvlBar().style.width = (inLvl * (100 / LINES_PER_LEVEL)) + '%';
   els.lvlNxt().textContent = `${inLvl} / ${LINES_PER_LEVEL}`;
+  // also drive the radioactive-green level-meter halo around the board
+  document.documentElement.style.setProperty('--lvl-fill', String(inLvl / LINES_PER_LEVEL));
 }
 
 export function setHandle(handle: string | null): void {

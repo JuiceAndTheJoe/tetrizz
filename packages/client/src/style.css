@@ -47,6 +47,8 @@ body::after {
 @property --fx-glow-top { syntax: '<color>'; inherits: false; initial-value: rgba(0,0,0,0); }
 @property --fx-glow-bot { syntax: '<color>'; inherits: false; initial-value: rgba(0,0,0,0); }
 @property --fx-glow-mid { syntax: '<color>'; inherits: false; initial-value: rgba(0,0,0,0); }
+/* drives the bottom-up radioactive green level meter on .board-wrap */
+@property --lvl-fill { syntax: '<number>'; inherits: true; initial-value: 0; }
 .bg-glow {
   position: fixed; inset: 0; z-index: 0;
   pointer-events: none;
@@ -257,12 +259,33 @@ body.fx-3 .bg-glow {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
   border: 1px solid var(--panel-bd);
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  /* smooth animation when --lvl-fill changes (set on :root by hud.ts) */
+  transition: --lvl-fill .45s cubic-bezier(.22, .9, .25, 1);
 }
 .board-wrap::before {
+  /* colourful halo — visible while the meter is empty */
   content: "";
   position: absolute; inset: -2px; border-radius: 24px;
   background: conic-gradient(from 200deg, #ff2e93, #29e4ff, #c8ff3a, #ff2e93);
   filter: blur(18px); opacity: 0.35; z-index: -1;
+  pointer-events: none;
+}
+.board-wrap::after {
+  /* radioactive green juice — fills bottom-up over the colourful halo as
+     --lvl-fill (0..1) rises with the within-level lines progress */
+  content: "";
+  position: absolute; inset: -3px; border-radius: 25px;
+  background: linear-gradient(
+    0deg,
+    #2bff00 0%,
+    #5fff3a calc(var(--lvl-fill) * 60%),
+    #b4ff5e calc(var(--lvl-fill) * 100% - 1%),
+    transparent calc(var(--lvl-fill) * 100%)
+  );
+  filter: blur(22px) saturate(1.5);
+  opacity: .85;
+  z-index: -1;
+  pointer-events: none;
 }
 #game {
   display: block;
