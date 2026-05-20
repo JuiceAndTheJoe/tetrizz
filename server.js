@@ -39,6 +39,27 @@ async function initSchema(p) {
     );
   `);
   await p.query(`CREATE INDEX IF NOT EXISTS high_scores_score_idx ON high_scores (score DESC, created_at DESC);`);
+
+  // One-time cleanup of the smoke-test row inserted while verifying the API.
+  // Idempotent — at most matches a single row by exact id + values.
+  await p.query(`DELETE FROM high_scores WHERE id = 1 AND handle = '@esvel' AND score = 4242;`);
+
+  // Migrate to per-handle best: dedupe (keep highest, tiebreak by oldest id), then add UNIQUE.
+  // Wrapped so the constraint addition only runs once.
+  await p.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conrelid = 'high_scores'::regclass AND conname = 'high_scores_handle_key'
+      ) THEN
+        DELETE FROM high_scores a USING high_scores b
+        WHERE a.handle = b.handle
+          AND (a.score < b.score OR (a.score = b.score AND a.id > b.id));
+        ALTER TABLE high_scores ADD CONSTRAINT high_scores_handle_key UNIQUE (handle);
+      END IF;
+    END $$;
+  `);
 }
 
 // ---------- routes ----------
@@ -74,15 +95,30 @@ app.post('/api/scores', async (req, res) => {
     return res.status(400).json({ error: 'bad-input' });
   }
   try {
-    const { rows } = await pool.query(
+    // Per-handle best: insert if new, overwrite only when the new score strictly beats the old.
+    // RETURNING is empty when the submitted score didn't beat the stored one — fall back to a SELECT.
+    const upsert = await pool.query(
       `INSERT INTO high_scores (handle, score, lines, level)
        VALUES ($1, $2, $3, $4)
-       RETURNING id, handle, score, lines, level, created_at`,
+       ON CONFLICT (handle) DO UPDATE
+         SET score = EXCLUDED.score,
+             lines = EXCLUDED.lines,
+             level = EXCLUDED.level,
+             created_at = now()
+         WHERE EXCLUDED.score > high_scores.score
+       RETURNING handle, score, lines, level, created_at`,
       [handle, score, lines, level],
     );
-    res.status(201).json(rows[0]);
+    if (upsert.rows.length > 0) {
+      return res.status(201).json({ ...upsert.rows[0], replaced: true });
+    }
+    const current = await pool.query(
+      `SELECT handle, score, lines, level, created_at FROM high_scores WHERE handle = $1`,
+      [handle],
+    );
+    res.status(200).json({ ...current.rows[0], replaced: false });
   } catch (err) {
-    console.error('[api] score insert failed', err);
+    console.error('[api] score upsert failed', err);
     res.status(500).json({ error: 'db' });
   }
 });
