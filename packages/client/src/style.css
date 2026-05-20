@@ -246,8 +246,11 @@ body.fx-3 .bg-glow {
   letter-spacing: .08em; text-transform: uppercase;
 }
 
-/* "How to cook" panel: collapsible via <details>. The summary becomes a clickable
-   row matching the standard panel h3 look; the chevron rotates 90° when open. */
+/* "How to cook" panel: collapsible via <details>. The summary is a clickable
+   row matching the standard panel h3 look. When open, the keys list pops up
+   ABOVE the panel as a floating popover, overlapping any cards stacked above.
+   Closed state leaves the panel as just the title row. */
+.panel.how-to { position: relative; }
 .panel.how-to > summary {
   list-style: none;
   cursor: pointer;
@@ -266,10 +269,26 @@ body.fx-3 .bg-glow {
   color: var(--ink-3);
   display: inline-block;
   transition: transform .2s ease, color .15s ease;
+  transform: rotate(90deg); /* default: pointing down (closed, popover lives upward) */
 }
 .panel.how-to > summary:hover .chev { color: var(--ink-2); }
-.panel.how-to[open] > summary { margin-bottom: 10px; }
-.panel.how-to[open] > summary .chev { transform: rotate(90deg); }
+.panel.how-to[open] > summary .chev { transform: rotate(-90deg); /* points up at the open popover */ }
+
+.panel.how-to[open] > .keys {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 14px 16px 12px;
+  background: linear-gradient(180deg, rgba(20, 5, 40, .94), rgba(12, 0, 28, .92));
+  border: 1px solid var(--panel-bd);
+  border-radius: 14px;
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  box-shadow: 0 -16px 40px rgba(0, 0, 0, .55);
+  z-index: 50;
+}
 
 .keys { display: grid; grid-template-columns: auto 1fr; row-gap: 6px; column-gap: 12px; font-size: 12px; }
 .keys kbd {
