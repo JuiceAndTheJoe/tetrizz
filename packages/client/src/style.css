@@ -95,10 +95,12 @@ body.fx-3 .bg-glow {
   margin: 0 auto;
 }
 
-/* Side columns: min-height: 0 lets the grid item shrink so its panels (with their
-   own height) stay inside the viewport. No scrollbar — the layout below is sized
-   to fit a typical laptop without overflow. */
+/* Side columns: min-height: 0 lets the grid item match its grid track. */
 .left-col, .right-col { min-height: 0; }
+
+/* Don't let the flex column squish panels — .brand in particular has overflow:hidden,
+   which would otherwise let flex shrink it past its content (clipping the wordmark). */
+.brand, .left-col > .panel, .right-col > .panel { flex-shrink: 0; }
 
 /* Hold · Next combined card: two slots side by side. */
 .hold-next {
@@ -122,10 +124,11 @@ body.fx-3 .bg-glow {
 }
 .hold-next .mini-board { min-height: 64px; padding: 8px; }
 
-/* Short laptops (<= ~860px tall, desktop layout only): tighten paddings/fonts so
-   all four left-column panels + footer fit without scrolling. Brand wordmark
-   keeps its full size — only the chrome around it shrinks. */
-@media (min-width: 1101px) and (max-height: 860px) {
+/* Laptops up to ~940px tall (desktop layout only): tighten paddings/fonts so all
+   four left-column panels + footer fit without scrolling. Brand wordmark keeps
+   its full size — only the chrome around it shrinks. The 940 cutoff covers the
+   awkward zone where content totals just over the viewport on common laptops. */
+@media (min-width: 1101px) and (max-height: 940px) {
   .app { padding: 14px 28px; gap: 20px; height: 100vh; }
   .brand { padding: 14px 16px 12px; }
   .panel { padding: 12px 14px 10px; border-radius: 16px; }
