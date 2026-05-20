@@ -489,14 +489,19 @@ body[class*="fx-"] .brand { animation-delay: -.025s; }
 .btn:hover { transform: translateY(-1px); }
 .btn:active { transform: translateY(1px); }
 .btn-vs {
-  margin-top: 10px;
+  display: block;
+  margin: 10px auto 0;
   background: linear-gradient(180deg, #29e4ff, #0a6e8c);
   box-shadow: 0 10px 30px rgba(41, 228, 255, .35), inset 0 1px 0 rgba(255, 255, 255, .3);
 }
 
 body.versus-stage .left-col,
 body.versus-stage .right-col { display: none !important; }
-body.versus-stage .app { grid-template-columns: minmax(0, 1fr); padding: 12px; }
+body.versus-stage .app { grid-template-columns: minmax(0, 1fr); padding: 12px; justify-items: center; }
+body.versus-stage .stage { width: 100%; max-width: 660px; }
+body.versus-stage .board-wrap { width: 628px; max-width: 95vw; }
+body.versus-stage #game { width: 600px; max-width: calc(95vw - 28px); }
+body.versus-stage #game canvas { width: 100% !important; height: auto !important; }
 .versus-hud {
   display: flex; justify-content: space-between; align-items: center; gap: 18px;
   font-family: "JetBrains Mono", monospace; font-size: 12px;
