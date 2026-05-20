@@ -85,11 +85,11 @@ body.fx-3 .bg-glow {
 .app {
   position: relative; z-index: 1;
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr) 320px;
-  gap: 22px;
-  padding: 20px 28px;
+  grid-template-columns: 300px minmax(0, 1fr) 340px;
+  gap: 28px;
+  padding: 22px 32px;
   height: 100vh;
-  max-width: 1320px;
+  max-width: 1640px;
   margin: 0 auto;
 }
 
@@ -221,10 +221,12 @@ body.fx-3 .bg-glow {
 #game {
   display: block;
   position: relative;
-  width: 300px;
-  height: 600px;
-  max-width: 100%;
+  /* Scale the board with viewport height (board aspect is 1:2).
+     Min 300px keeps it readable on small screens; max 440px caps it so
+     the side panels stay relevant on huge monitors. */
+  width: clamp(300px, calc((100vh - 140px) / 2), 440px);
   aspect-ratio: 1 / 2;
+  max-width: 100%;
   border-radius: 14px;
   overflow: hidden;
 }
@@ -450,7 +452,7 @@ body[class*="fx-"] .brand { animation-delay: -.025s; }
 .touch-controls {
   display: none; /* shown only on coarse-pointer devices */
   width: 100%;
-  max-width: 360px;
+  max-width: 440px;
   margin: 6px auto 0;
   flex-direction: column;
   gap: 8px;
