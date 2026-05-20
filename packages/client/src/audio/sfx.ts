@@ -26,6 +26,9 @@ const STREAK_LOSS_ROTATION: readonly SfxKey[] = ['taco', 'fahhh', 'tuco'];
 export class Sfx {
   private sound: Phaser.Sound.BaseSoundManager;
   private streakLossIdx = 0;
+  // we keep a persistent Phaser sound instance for charlie so we can hook
+  // its complete/stop events and drive the screen-wide 130 BPM pulse class.
+  private charlieSound: Phaser.Sound.BaseSound | null = null;
 
   constructor(sound: Phaser.Sound.BaseSoundManager) {
     this.sound = sound;
@@ -34,11 +37,29 @@ export class Sfx {
 
   play(key: SfxKey): void {
     if (this.sound.mute) return;
+    if (key === 'charlie') {
+      this.playCharlie();
+      return;
+    }
     // Phaser WebAudio handles overlapping plays by default (each call creates a new playback instance).
     this.sound.play(key, {
       volume: SFX_VOL[key],
       seek: SFX_OFFSET[key],
     });
+  }
+
+  private playCharlie(): void {
+    if (!this.charlieSound) {
+      this.charlieSound = this.sound.add('charlie');
+      const off = (): void => { document.body.classList.remove('beat-130'); };
+      this.charlieSound.on('complete', off);
+      this.charlieSound.on('stop', off);
+    }
+    this.charlieSound.play({
+      volume: SFX_VOL.charlie,
+      seek: SFX_OFFSET.charlie,
+    });
+    document.body.classList.add('beat-130');
   }
 
   /** Plays whichever clear-tier sound is appropriate for the lock event. */
@@ -62,6 +83,9 @@ export class Sfx {
   setMuted(muted: boolean): void {
     this.sound.mute = muted;
     saveMuted(muted);
+    // killing the charlie playback when muted also drops the beat-130 pulse
+    // (via the 'stop' listener registered in playCharlie).
+    if (muted && this.charlieSound?.isPlaying) this.charlieSound.stop();
   }
   toggleMute(): boolean {
     this.setMuted(!this.sound.mute);
