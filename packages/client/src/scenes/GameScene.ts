@@ -340,6 +340,11 @@ export class GameScene extends Phaser.Scene {
     if (input.style.display !== 'none') {
       const normalized = normalizeHandle(input.value);
       if (normalized) {
+        // Switching handles wipes the personal best — it belongs to whoever was playing before.
+        if (normalized !== this.handle) {
+          this.best = 0;
+          saveBest(0);
+        }
         this.handle = normalized;
         saveHandle(normalized);
         setHandle(normalized);
