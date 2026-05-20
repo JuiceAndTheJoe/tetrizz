@@ -81,17 +81,20 @@
 
       <aside class="right-col" style="display:flex; flex-direction:column; gap:14px;">
         <div class="panel">
-          <h3>Hold</h3>
-          <div class="mini-board" id="hold-board">
-            <span style="color:rgba(255,255,255,.3); font-size:11px; letter-spacing:.18em;">—</span>
-          </div>
-        </div>
-        <div class="panel">
-          <h3>Next in queue</h3>
-          <div class="next-list" id="next-list">
-            <div class="mini-board"><span style="color:rgba(255,255,255,.3); font-size:11px; letter-spacing:.18em;">—</span></div>
-            <div class="mini-board"><span style="color:rgba(255,255,255,.3); font-size:11px; letter-spacing:.18em;">—</span></div>
-            <div class="mini-board"><span style="color:rgba(255,255,255,.3); font-size:11px; letter-spacing:.18em;">—</span></div>
+          <h3>Hold · Next</h3>
+          <div class="hold-next">
+            <div class="hn-col">
+              <span class="hn-label">Hold</span>
+              <div class="mini-board" id="hold-board">
+                <span style="color:rgba(255,255,255,.3); font-size:11px; letter-spacing:.18em;">—</span>
+              </div>
+            </div>
+            <div class="hn-col">
+              <span class="hn-label">Next</span>
+              <div class="mini-board" id="next-board">
+                <span style="color:rgba(255,255,255,.3); font-size:11px; letter-spacing:.18em;">—</span>
+              </div>
+            </div>
           </div>
         </div>
         <div class="panel">

@@ -93,45 +93,55 @@ body.fx-3 .bg-glow {
   margin: 0 auto;
 }
 
-/* Side columns scroll internally on short viewports so the board stays put. */
-.left-col, .right-col {
-  min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,.18) transparent;
-  /* breathing room so panel glow/shake animations don't clip into the scrollbar */
-  padding-right: 4px;
-  margin-right: -4px;
-}
-.left-col::-webkit-scrollbar,
-.right-col::-webkit-scrollbar { width: 6px; }
-.left-col::-webkit-scrollbar-track,
-.right-col::-webkit-scrollbar-track { background: transparent; }
-.left-col::-webkit-scrollbar-thumb,
-.right-col::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,.15);
-  border-radius: 4px;
-}
-.left-col::-webkit-scrollbar-thumb:hover,
-.right-col::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.28); }
+/* Side columns: min-height: 0 lets the grid item shrink so its panels (with their
+   own height) stay inside the viewport. No scrollbar — the layout below is sized
+   to fit a typical laptop without overflow. */
+.left-col, .right-col { min-height: 0; }
 
-/* Short laptops (<= ~850px tall): tighten paddings so panels need less vertical room
-   before scrolling kicks in. */
+/* Hold · Next combined card: two slots side by side. */
+.hold-next {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.hn-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.hn-label {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 9px;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  text-align: center;
+}
+.hold-next .mini-board { min-height: 64px; padding: 8px; }
+
+/* Short laptops (<= ~860px tall, desktop layout only): tighten paddings/fonts so
+   all four left-column panels + footer fit without scrolling. Brand wordmark
+   keeps its full size — only the chrome around it shrinks. */
 @media (min-width: 1101px) and (max-height: 860px) {
-  .app { padding: 14px 28px; gap: 20px; }
+  .app { padding: 14px 28px; gap: 20px; height: 100vh; }
   .brand { padding: 14px 16px 12px; }
-  .wordmark { font-size: 54px; }
   .panel { padding: 12px 14px 10px; border-radius: 16px; }
-  .panel h3 { margin: 0 0 8px; }
+  .panel h3 { margin: 0 0 6px; }
   .stat-row { padding: 2px 0; }
-  .stat-row .v { font-size: 24px; }
-  .keys { row-gap: 4px; font-size: 11px; }
+  .stat-row .v { font-size: 22px; }
+  .meter { margin-top: 4px; }
+  .meter-row { margin-top: 4px; }
+  .keys { row-gap: 3px; font-size: 11px; }
+  .keys kbd { font-size: 10px; padding: 1px 6px; }
+  .stage { gap: 10px; }
+  .topline { font-size: 10px; }
+  .board-wrap { padding: 10px; }
 }
 
 .brand {
-  display: flex; flex-direction: column; gap: 6px;
-  padding: 18px 18px 16px;
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 20px 20px 18px;
   border: 1px solid var(--panel-bd);
   border-radius: 22px;
   background: linear-gradient(180deg, rgba(255, 46, 147, 0.18), rgba(41, 228, 255, 0.06) 70%, transparent);
@@ -145,7 +155,7 @@ body.fx-3 .bg-glow {
 }
 .wordmark {
   font-family: "Anton", "Bricolage Grotesque", sans-serif;
-  font-size: 64px; line-height: .85; letter-spacing: -.02em;
+  font-size: 62px; line-height: .95; letter-spacing: -.02em;
   margin: 0;
   background: linear-gradient(180deg, #fff, #ffd6ec 40%, #ff2e93 80%);
   -webkit-background-clip: text; background-clip: text; color: transparent;

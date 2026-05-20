@@ -18,7 +18,7 @@ const els = {
   lvlBar: () => $('lvlbar'),
   lvlNxt: () => $('lvlnext'),
   holdBoard: () => $('hold-board'),
-  nextList: () => $('next-list'),
+  nextBoard: () => $('next-board'),
 };
 
 export interface ScoreboardState {
@@ -59,16 +59,11 @@ export function setHold(type: PieceType | null): void {
 }
 
 export function setNext(queue: readonly PieceType[]): void {
-  const root = els.nextList();
+  const root = els.nextBoard();
   root.innerHTML = '';
-  for (let i = 0; i < 3; i++) {
-    const slot = document.createElement('div');
-    slot.className = 'mini-board';
-    const type = queue[i] ?? null;
-    if (type) slot.appendChild(buildMiniPiece(type));
-    else slot.appendChild(placeholderSpan());
-    root.appendChild(slot);
-  }
+  const type = queue[0] ?? null;
+  if (type) root.appendChild(buildMiniPiece(type));
+  else root.appendChild(placeholderSpan());
 }
 
 function placeholderSpan(): HTMLElement {
