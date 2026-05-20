@@ -40,9 +40,9 @@ async function initSchema(p) {
   `);
   await p.query(`CREATE INDEX IF NOT EXISTS high_scores_score_idx ON high_scores (score DESC, created_at DESC);`);
 
-  // One-time cleanup of the smoke-test row inserted while verifying the API.
-  // Idempotent — at most matches a single row by exact id + values.
-  await p.query(`DELETE FROM high_scores WHERE id = 1 AND handle = '@esvel' AND score = 4242;`);
+  // One-time cleanup of smoke-test rows inserted while verifying the API.
+  // Idempotent — deletes only the exact rows from earlier API smoke tests.
+  await p.query(`DELETE FROM high_scores WHERE handle IN ('@esvel', '@cooktest');`);
 
   // Migrate to per-handle best: dedupe (keep highest, tiebreak by oldest id), then add UNIQUE.
   // Wrapped so the constraint addition only runs once.
