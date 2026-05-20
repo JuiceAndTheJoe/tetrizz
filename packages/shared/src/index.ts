@@ -8,3 +8,5 @@ export * from './bag.ts';
 export * from './board.ts';
 export * from './scoring.ts';
 export * from './state.ts';
+export * from './garbage.ts';
+export * from './versus.ts';
