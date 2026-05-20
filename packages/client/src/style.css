@@ -93,6 +93,42 @@ body.fx-3 .bg-glow {
   margin: 0 auto;
 }
 
+/* Side columns scroll internally on short viewports so the board stays put. */
+.left-col, .right-col {
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,.18) transparent;
+  /* breathing room so panel glow/shake animations don't clip into the scrollbar */
+  padding-right: 4px;
+  margin-right: -4px;
+}
+.left-col::-webkit-scrollbar,
+.right-col::-webkit-scrollbar { width: 6px; }
+.left-col::-webkit-scrollbar-track,
+.right-col::-webkit-scrollbar-track { background: transparent; }
+.left-col::-webkit-scrollbar-thumb,
+.right-col::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,.15);
+  border-radius: 4px;
+}
+.left-col::-webkit-scrollbar-thumb:hover,
+.right-col::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.28); }
+
+/* Short laptops (<= ~850px tall): tighten paddings so panels need less vertical room
+   before scrolling kicks in. */
+@media (min-width: 1101px) and (max-height: 860px) {
+  .app { padding: 14px 28px; gap: 20px; }
+  .brand { padding: 14px 16px 12px; }
+  .wordmark { font-size: 54px; }
+  .panel { padding: 12px 14px 10px; border-radius: 16px; }
+  .panel h3 { margin: 0 0 8px; }
+  .stat-row { padding: 2px 0; }
+  .stat-row .v { font-size: 24px; }
+  .keys { row-gap: 4px; font-size: 11px; }
+}
+
 .brand {
   display: flex; flex-direction: column; gap: 6px;
   padding: 18px 18px 16px;
