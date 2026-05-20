@@ -21,6 +21,9 @@ const SFX_OFFSET: Record<SfxKey, number> = {
   rizz: 1.10, bombo: 0, siren: 0, taco: 0, fahhh: 0, tuco: 0, charlie: 0,
 };
 
+// charlie has a ~7s intro before the beat drops — hold the screen pulse until then
+const CHARLIE_BEAT_DELAY_MS = 7000;
+
 const STREAK_LOSS_ROTATION: readonly SfxKey[] = ['taco', 'fahhh', 'tuco'];
 
 export class Sfx {
@@ -29,6 +32,8 @@ export class Sfx {
   // we keep a persistent Phaser sound instance for charlie so we can hook
   // its complete/stop events and drive the screen-wide 130 BPM pulse class.
   private charlieSound: Phaser.Sound.BaseSound | null = null;
+  // deferred kickoff for the pulse so we can wait out the song intro
+  private charlieBeatTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(sound: Phaser.Sound.BaseSoundManager) {
     this.sound = sound;
@@ -51,7 +56,13 @@ export class Sfx {
   private playCharlie(): void {
     if (!this.charlieSound) {
       this.charlieSound = this.sound.add('charlie');
-      const off = (): void => { document.body.classList.remove('beat-130'); };
+      const off = (): void => {
+        document.body.classList.remove('beat-130');
+        if (this.charlieBeatTimer !== null) {
+          clearTimeout(this.charlieBeatTimer);
+          this.charlieBeatTimer = null;
+        }
+      };
       this.charlieSound.on('complete', off);
       this.charlieSound.on('stop', off);
     }
@@ -59,7 +70,14 @@ export class Sfx {
       volume: SFX_VOL.charlie,
       seek: SFX_OFFSET.charlie,
     });
-    document.body.classList.add('beat-130');
+    // wait out the song intro before kicking the pulse in
+    document.body.classList.remove('beat-130');
+    if (this.charlieBeatTimer !== null) clearTimeout(this.charlieBeatTimer);
+    const delay = Math.max(0, CHARLIE_BEAT_DELAY_MS - SFX_OFFSET.charlie * 1000);
+    this.charlieBeatTimer = setTimeout(() => {
+      this.charlieBeatTimer = null;
+      if (this.charlieSound?.isPlaying) document.body.classList.add('beat-130');
+    }, delay);
   }
 
   /** Plays whichever clear-tier sound is appropriate for the lock event. */
