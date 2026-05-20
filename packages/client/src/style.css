@@ -246,6 +246,31 @@ body.fx-3 .bg-glow {
   letter-spacing: .08em; text-transform: uppercase;
 }
 
+/* "How to cook" panel: collapsible via <details>. The summary becomes a clickable
+   row matching the standard panel h3 look; the chevron rotates 90° when open. */
+.panel.how-to > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  user-select: none;
+}
+.panel.how-to > summary::-webkit-details-marker { display: none; }
+.panel.how-to > summary h3 { margin: 0; }
+.panel.how-to > summary .chev {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--ink-3);
+  display: inline-block;
+  transition: transform .2s ease, color .15s ease;
+}
+.panel.how-to > summary:hover .chev { color: var(--ink-2); }
+.panel.how-to[open] > summary { margin-bottom: 10px; }
+.panel.how-to[open] > summary .chev { transform: rotate(90deg); }
+
 .keys { display: grid; grid-template-columns: auto 1fr; row-gap: 6px; column-gap: 12px; font-size: 12px; }
 .keys kbd {
   font-family: "JetBrains Mono", monospace; font-size: 11px;
