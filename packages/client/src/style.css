@@ -269,10 +269,10 @@ body.fx-3 .bg-glow {
   color: var(--ink-3);
   display: inline-block;
   transition: transform .2s ease, color .15s ease;
-  transform: rotate(90deg); /* default: pointing down (closed, popover lives upward) */
+  transform: rotate(-90deg); /* default: pointing up (popover opens upward) */
 }
 .panel.how-to > summary:hover .chev { color: var(--ink-2); }
-.panel.how-to[open] > summary .chev { transform: rotate(-90deg); /* points up at the open popover */ }
+.panel.how-to[open] > summary .chev { transform: rotate(90deg); /* points down to dismiss the popover */ }
 
 .panel.how-to[open] > .keys {
   position: absolute;
