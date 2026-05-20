@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>TETRIZZ — the rizz dropper</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Space+Grotesque:wght@400..700&family=Anton&family=JetBrains+Mono:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div class="bg-glow" aria-hidden="true"></div>
+    <button class="mute-btn" id="mute-btn" type="button" aria-label="mute audio">🔊</button>
+
+    <div class="app">
+      <aside class="left-col" style="display:flex; flex-direction:column; gap:14px;">
+        <div class="brand">
+          <h1 class="wordmark">TETRI<span class="zz">ZZ</span></h1>
+          <span class="tag">drop blocks · cook lines · <b>get the W</b></span>
+        </div>
+
+        <div class="panel">
+          <h3>The Rizzboard</h3>
+          <div class="stat-row"><span class="k">Rizz</span><span class="v hot" id="score">0</span></div>
+          <div class="stat-row"><span class="k">Lines mogged</span><span class="v cyan" id="lines">0</span></div>
+          <div class="stat-row"><span class="k">Sigma level</span><span class="v lime" id="level">1</span></div>
+          <div class="meter"><i id="lvlbar"></i></div>
+          <div class="meter-row"><span>next level</span><span id="lvlnext">0 / 5</span></div>
+        </div>
+
+        <div class="panel">
+          <h3>Combo · Mog streak</h3>
+          <div class="stat-row"><span class="k">Streak</span><span class="v hot" id="combo">0×</span></div>
+          <div class="stat-row"><span class="k">Best rizz</span><span class="v" id="best">0</span></div>
+          <div class="stat-row"><span class="k">Handle</span><span class="v" id="handle" style="font-size:18px;">—</span></div>
+        </div>
+
+        <div class="panel">
+          <h3>How to cook</h3>
+          <div class="keys">
+            <kbd>← →</kbd><span>shift the rizz</span>
+            <kbd>↓</kbd><span>soft drop (mid)</span>
+            <kbd>Space</kbd><span>hard drop (sigma)</span>
+            <kbd>↑ / X</kbd><span>rotate cw</span>
+            <kbd>Z</kbd><span>rotate ccw</span>
+            <kbd>Shift / C</kbd><span>hold piece</span>
+            <kbd>P / Esc</kbd><span>pause</span>
+            <kbd>R</kbd><span>reset</span>
+            <kbd>M</kbd><span>mute</span>
+          </div>
+        </div>
+      </aside>
+
+      <section class="stage">
+        <div class="topline">
+          <span class="live">live · 12.4k watching</span>
+          <span id="status">drop in to start</span>
+        </div>
+        <div class="board-wrap">
+          <div id="game"></div>
+          <div class="reactions" id="reactions"></div>
+          <div class="overlay show" id="overlay">
+            <div class="inner">
+              <h2 id="ov-title">TETRIZZ</h2>
+              <p id="ov-sub">
+                pick a handle, lock in.
+                <br>arrows to move · space to slam · shift to hold.
+              </p>
+              <input type="text" id="handle-input" class="handle-input" maxlength="14" placeholder="@your_handle" autocomplete="off" />
+              <button class="btn" id="ov-btn">START THE RIZZ</button>
+            </div>
+          </div>
+        </div>
+        <div class="footer">v1 · gyatt edition · no cap fr fr</div>
+      </section>
+
+      <aside class="right-col" style="display:flex; flex-direction:column; gap:14px;">
+        <div class="panel">
+          <h3>Hold</h3>
+          <div class="mini-board" id="hold-board">
+            <span style="color:rgba(255,255,255,.3); font-size:11px; letter-spacing:.18em;">—</span>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Next in queue</h3>
+          <div class="next-list" id="next-list">
+            <div class="mini-board"><span style="color:rgba(255,255,255,.3); font-size:11px; letter-spacing:.18em;">—</span></div>
+            <div class="mini-board"><span style="color:rgba(255,255,255,.3); font-size:11px; letter-spacing:.18em;">—</span></div>
+            <div class="mini-board"><span style="color:rgba(255,255,255,.3); font-size:11px; letter-spacing:.18em;">—</span></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Chat is wildin'</h3>
+          <div class="chat" id="chat"></div>
+        </div>
+      </aside>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

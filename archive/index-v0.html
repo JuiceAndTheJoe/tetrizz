@@ -1,0 +1,1425 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>TETRIZZ — the rizz dropper</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Space+Grotesque:wght@400..700&family=Anton&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-0: #0a0014;
+    --bg-1: #15012b;
+    --bg-2: #2a0744;
+    --hot: #ff2e93;
+    --hot-2: #ff5fb0;
+    --cyan: #29e4ff;
+    --lime: #c8ff3a;
+    --yel:  #ffd400;
+    --pur:  #b66bff;
+    --ink:  #ffffff;
+    --ink-2: rgba(255,255,255,.7);
+    --ink-3: rgba(255,255,255,.45);
+    --panel: rgba(255,255,255,.06);
+    --panel-bd: rgba(255,255,255,.12);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    background: radial-gradient(1200px 700px at 70% -10%, #4a0c80 0%, transparent 60%),
+                radial-gradient(900px 600px at 0% 100%, #00c2ff33 0%, transparent 50%),
+                linear-gradient(180deg, var(--bg-0), var(--bg-1) 60%, #1a0030 100%);
+    color: var(--ink);
+    font-family: "Bricolage Grotesque", "Space Grotesque", system-ui, sans-serif;
+    overflow: hidden;
+    min-height: 100vh;
+  }
+  body::before {
+    content:""; position: fixed; inset:0; pointer-events:none;
+    background-image:
+      linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: radial-gradient(900px 700px at 50% 40%, #000 50%, transparent 90%);
+    z-index: 0;
+  }
+
+  /* combo-driven background glow */
+  @property --fx-glow-top { syntax: '<color>'; inherits: false; initial-value: rgba(0,0,0,0); }
+  @property --fx-glow-bot { syntax: '<color>'; inherits: false; initial-value: rgba(0,0,0,0); }
+  @property --fx-glow-mid { syntax: '<color>'; inherits: false; initial-value: rgba(0,0,0,0); }
+  .bg-glow {
+    position: fixed; inset: 0; z-index: 0;
+    pointer-events: none;
+    --fx-glow-top: rgba(0,0,0,0);
+    --fx-glow-bot: rgba(0,0,0,0);
+    --fx-glow-mid: rgba(0,0,0,0);
+    background:
+      radial-gradient(80% 60% at 50% 0%,   var(--fx-glow-top), transparent 65%),
+      radial-gradient(70% 60% at 50% 100%, var(--fx-glow-bot), transparent 65%),
+      radial-gradient(70% 60% at 50% 50%,  var(--fx-glow-mid), transparent 75%);
+    transition: --fx-glow-top 1.4s ease, --fx-glow-bot 1.4s ease, --fx-glow-mid 1.4s ease;
+    mix-blend-mode: screen;
+  }
+  body.fx-1 .bg-glow {
+    --fx-glow-top: rgba(255,180,60,.75);
+    --fx-glow-bot: rgba(220,40,130,.55);
+    --fx-glow-mid: rgba(180,40,100,.18);
+  }
+  body.fx-2 .bg-glow {
+    --fx-glow-top: rgba(255,130,20,.85);
+    --fx-glow-bot: rgba(255,50,10,.7);
+    --fx-glow-mid: rgba(200,30,80,.32);
+  }
+  body.fx-3 .bg-glow {
+    --fx-glow-top: rgba(255,170,30,1);
+    --fx-glow-bot: rgba(255,40,30,.95);
+    --fx-glow-mid: rgba(255,80,0,.5);
+    animation: bgFlicker 2.2s ease-in-out infinite;
+  }
+  @keyframes bgFlicker {
+    0%,100% { filter: brightness(1)    saturate(1.05); }
+    35%     { filter: brightness(1.18) saturate(1.2);  }
+    65%     { filter: brightness(.9)   saturate(1.1);  }
+  }
+  body::after {
+    content:""; position: fixed; inset:0; pointer-events:none;
+    background: repeating-linear-gradient(0deg, rgba(255,255,255,.02) 0 1px, transparent 1px 3px);
+    mix-blend-mode: overlay;
+    z-index: 0;
+  }
+  .app {
+    position: relative; z-index: 1;
+    display: grid;
+    grid-template-columns: 280px minmax(0,1fr) 320px;
+    gap: 22px;
+    padding: 20px 28px;
+    height: 100vh;
+    max-width: 1320px;
+    margin: 0 auto;
+  }
+
+  /* ---------- left column ---------- */
+  .brand {
+    display: flex; flex-direction: column; gap: 6px;
+    padding: 18px 18px 16px;
+    border: 1px solid var(--panel-bd);
+    border-radius: 22px;
+    background: linear-gradient(180deg, rgba(255,46,147,.18), rgba(41,228,255,.06) 70%, transparent);
+    position: relative;
+    overflow: hidden;
+  }
+  .brand::before{
+    content:""; position:absolute; inset:-1px; border-radius:22px;
+    background: conic-gradient(from 90deg, #ff2e93, #29e4ff, #c8ff3a, #ff2e93);
+    filter: blur(22px); opacity:.25; z-index:-1;
+  }
+  .wordmark {
+    font-family: "Anton", "Bricolage Grotesque", sans-serif;
+    font-size: 64px; line-height: .85; letter-spacing: -.02em;
+    margin: 0;
+    background: linear-gradient(180deg, #fff, #ffd6ec 40%, #ff2e93 80%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    text-shadow: 0 0 24px rgba(255,46,147,.35);
+  }
+  .wordmark .zz { color: var(--cyan); -webkit-text-fill-color: var(--cyan); text-shadow: 0 0 22px rgba(41,228,255,.7); }
+  .tag {
+    font-size: 12px; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .tag b { color: var(--lime); }
+
+  .panel {
+    border: 1px solid var(--panel-bd);
+    background: var(--panel);
+    border-radius: 18px;
+    padding: 16px 16px 14px;
+    backdrop-filter: blur(12px) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
+  }
+  .panel h3 {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px; letter-spacing: .3em; text-transform: uppercase;
+    margin: 0 0 10px; color: var(--ink-3);
+    display: flex; align-items:center; gap:8px;
+  }
+  .panel h3::before{
+    content:""; width:6px; height:6px; border-radius:50%;
+    background: var(--hot); box-shadow: 0 0 10px var(--hot);
+  }
+
+  .stat-row { display:flex; justify-content:space-between; align-items:baseline; padding: 4px 0; }
+  .stat-row .k { color: var(--ink-3); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; }
+  .stat-row .v {
+    font-family: "Anton", sans-serif; font-size: 28px; letter-spacing: .01em;
+    color: var(--ink);
+  }
+  .stat-row .v.hot { color: var(--hot-2); text-shadow: 0 0 12px rgba(255,46,147,.5); }
+  .stat-row .v.cyan { color: var(--cyan); text-shadow: 0 0 10px rgba(41,228,255,.5); }
+  .stat-row .v.lime { color: var(--lime); text-shadow: 0 0 10px rgba(200,255,58,.45); }
+
+  .meter {
+    height: 10px; border-radius: 99px; background: rgba(255,255,255,.07);
+    border: 1px solid var(--panel-bd); overflow: hidden; position: relative;
+    margin-top: 6px;
+  }
+  .meter > i {
+    display:block; height: 100%; width: 0%;
+    background: linear-gradient(90deg, #ff2e93, #ffd400 60%, #29e4ff);
+    box-shadow: 0 0 12px rgba(255,46,147,.6);
+    transition: width .25s ease;
+  }
+  .meter-row { display:flex; justify-content:space-between; font-size: 11px; color: var(--ink-3); margin-top: 6px; letter-spacing: .08em; text-transform: uppercase; }
+
+  .keys { display:grid; grid-template-columns: auto 1fr; row-gap: 6px; column-gap: 12px; font-size: 12px; }
+  .keys kbd {
+    font-family: "JetBrains Mono", monospace; font-size: 11px;
+    background: rgba(255,255,255,.08); border:1px solid var(--panel-bd);
+    border-bottom-width: 2px;
+    padding: 2px 7px; border-radius: 6px; color: var(--ink-2);
+  }
+  .keys span { color: var(--ink-2); align-self:center; }
+
+  /* ---------- center column (the board) ---------- */
+  .stage {
+    position: relative;
+    z-index: 10;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 14px;
+  }
+  .topline {
+    width: 100%; max-width: 420px;
+    display: flex; justify-content: space-between; align-items: center;
+    color: var(--ink-3); font-family: "JetBrains Mono", monospace; font-size: 11px;
+    letter-spacing: .2em; text-transform: uppercase;
+  }
+  .topline .live { display:flex; align-items:center; gap:8px; color: var(--hot-2); }
+  .topline .live::before {
+    content:""; width:8px; height:8px; border-radius:50%; background: var(--hot);
+    box-shadow: 0 0 0 0 rgba(255,46,147,.6); animation: pulse 1.4s infinite;
+  }
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(255,46,147,.6); }
+    70%  { box-shadow: 0 0 0 10px rgba(255,46,147,0); }
+    100% { box-shadow: 0 0 0 0 rgba(255,46,147,0); }
+  }
+
+  .board-wrap {
+    position: relative;
+    padding: 14px;
+    border-radius: 22px;
+    background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+    border: 1px solid var(--panel-bd);
+    box-shadow:
+      0 30px 80px rgba(0,0,0,.55),
+      inset 0 0 0 1px rgba(255,255,255,.04);
+  }
+  .board-wrap::before {
+    content:""; position: absolute; inset:-2px; border-radius: 24px;
+    background: conic-gradient(from 200deg, #ff2e93, #29e4ff, #c8ff3a, #ff2e93);
+    filter: blur(18px); opacity: .35; z-index:-1;
+  }
+  canvas#board {
+    display: block;
+    background:
+      radial-gradient(60% 90% at 50% 0%, rgba(255,46,147,.10), transparent 60%),
+      linear-gradient(180deg, #0e0220, #07001a);
+    border-radius: 14px;
+    image-rendering: pixelated;
+  }
+
+  /* floating meme reactions */
+  .reactions {
+    position: absolute; inset: 14px;
+    pointer-events: none;
+    overflow: visible;
+    z-index: 5;
+  }
+  .reaction {
+    position: absolute;
+    font-family: "Anton", sans-serif;
+    font-size: 44px; letter-spacing: .01em;
+    color: #fff;
+    text-shadow: 0 0 18px rgba(255,46,147,.7), 0 2px 0 #220033, 0 6px 30px rgba(0,0,0,.5);
+    transform: translate(-50%,-50%) rotate(var(--r, -6deg));
+    animation: pop 2.4s cubic-bezier(.18,.7,.2,1) forwards;
+    white-space: nowrap;
+    will-change: transform, opacity, filter;
+  }
+  .reaction.small { font-size: 24px; }
+  .reaction.big   { font-size: 56px; }
+  .reaction.huge  { font-size: 72px; }
+  .reaction.cyan { color: var(--cyan); text-shadow: 0 0 18px rgba(41,228,255,.8), 0 2px 0 #002233; }
+  .reaction.lime { color: var(--lime); text-shadow: 0 0 18px rgba(200,255,58,.7), 0 2px 0 #1a2200; }
+  .reaction.yel  { color: var(--yel);  text-shadow: 0 0 18px rgba(255,212,0,.7), 0 2px 0 #221c00; }
+  .reaction.fire {
+    color: #ffe27a;
+    text-shadow:
+      0 0 10px #ffae00,
+      0 0 22px #ff4d00,
+      0 0 40px #ff2600,
+      0 2px 0 #4a1500;
+    animation: pop 2.6s cubic-bezier(.18,.7,.2,1) forwards, hueShift 1.4s infinite;
+  }
+  @keyframes pop {
+    0%   { opacity: 0; transform: translate(-50%,-50%) scale(.35) rotate(var(--r,-6deg)); filter: blur(0); }
+    8%   { opacity: 1; transform: translate(-50%,-50%) scale(1.25) rotate(var(--r,-6deg)); }
+    18%  { transform: translate(-50%,-55%) scale(1) rotate(var(--r,-6deg)); filter: blur(0); }
+    55%  { opacity: .75; transform: translate(-50%,-110%) scale(.92) rotate(var(--r,-6deg)); filter: blur(1.5px); }
+    100% { opacity: 0; transform: translate(-50%,-220%) scale(.7) rotate(var(--r,-6deg)); filter: blur(10px); }
+  }
+  @keyframes hueShift {
+    0%,100% { filter: hue-rotate(0deg) brightness(1.05); }
+    50%     { filter: hue-rotate(-15deg) brightness(1.25); }
+  }
+
+  /* ----- combo shake + fire ----- */
+  body.fx-1 .board-wrap,
+  body.fx-1 .panel,
+  body.fx-1 .brand     { animation: shake1 .12s infinite; }
+  body.fx-2 .board-wrap,
+  body.fx-2 .panel,
+  body.fx-2 .brand     { animation: shake2 .09s infinite; }
+  body.fx-3 .board-wrap,
+  body.fx-3 .panel,
+  body.fx-3 .brand     { animation: shake3 .06s infinite; }
+  /* desync so they don't move as one rigid block */
+  body[class*="fx-"] .left-col  .panel:nth-of-type(1) { animation-delay: -.01s; }
+  body[class*="fx-"] .left-col  .panel:nth-of-type(2) { animation-delay: -.03s; }
+  body[class*="fx-"] .left-col  .panel:nth-of-type(3) { animation-delay: -.05s; }
+  body[class*="fx-"] .right-col .panel:nth-of-type(1) { animation-delay: -.02s; }
+  body[class*="fx-"] .right-col .panel:nth-of-type(2) { animation-delay: -.04s; }
+  body[class*="fx-"] .right-col .panel:nth-of-type(3) { animation-delay: -.06s; }
+  body[class*="fx-"] .brand                           { animation-delay: -.025s; }
+  @keyframes shake1 {
+    0%,100% { transform: translate(0,0); }
+    25%     { transform: translate(-1.5px,1px); }
+    75%     { transform: translate(1.5px,-1px); }
+  }
+  @keyframes shake2 {
+    0%,100% { transform: translate(0,0) rotate(0deg); }
+    15%     { transform: translate(-3.5px,2.5px) rotate(-.3deg); }
+    35%     { transform: translate(3.5px,-3px)   rotate(.35deg); }
+    55%     { transform: translate(-2.5px,3.5px) rotate(-.25deg); }
+    80%     { transform: translate(3.5px,-1px)   rotate(.25deg); }
+  }
+  @keyframes shake3 {
+    0%,100% { transform: translate(0,0) rotate(0deg); }
+    10%     { transform: translate(-8px,5px)  rotate(-.8deg); }
+    25%     { transform: translate(8px,-6px)  rotate(.9deg);  }
+    45%     { transform: translate(-6px,-7px) rotate(-.7deg); }
+    65%     { transform: translate(7px,6px)   rotate(.65deg); }
+    85%     { transform: translate(-5px,4px)  rotate(-.5deg); }
+  }
+  .flames-layer {
+    position: absolute; inset: 14px;
+    border-radius: 14px;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 2;
+    opacity: 0;
+    transition: opacity .55s ease;
+  }
+  .flames-layer::before,
+  .flames-layer::after {
+    content: ""; position: absolute; inset: 0;
+    mix-blend-mode: screen;
+  }
+  .flames-layer::before {
+    background:
+      radial-gradient(95% 60% at 50% 118%, rgba(255,80,0,.95), transparent 65%),
+      radial-gradient(55% 38% at 22% 112%, rgba(255,180,40,.75), transparent 68%),
+      radial-gradient(55% 38% at 78% 112%, rgba(255,120,0,.8),  transparent 68%);
+    animation: flick1 .15s infinite alternate;
+  }
+  .flames-layer::after {
+    background:
+      radial-gradient(38% 30% at 35% 115%, rgba(255,255,200,.95), transparent 60%),
+      radial-gradient(38% 30% at 65% 115%, rgba(255,230,90,.9),  transparent 60%),
+      radial-gradient(28% 22% at 50% 108%, rgba(255,255,255,.85),transparent 60%);
+    animation: flick2 .09s infinite alternate;
+  }
+  @keyframes flick1 {
+    0%   { transform: translateY(0)   scaleY(1);    opacity: .85; }
+    100% { transform: translateY(-5px) scaleY(1.08); opacity: 1; }
+  }
+  @keyframes flick2 {
+    0%   { transform: translateY(0)    scaleX(.94); opacity: .7; }
+    100% { transform: translateY(-8px) scaleX(1.06); opacity: 1; }
+  }
+  /* embers rising */
+  .flames-layer .ember {
+    position: absolute; bottom: -8px;
+    width: 7px; height: 7px; border-radius: 50%;
+    background: radial-gradient(circle, #fff 0%, #ffd166 40%, #ff4d00 70%, transparent 80%);
+    box-shadow: 0 0 14px #ff8800, 0 0 28px #ff4d00;
+    animation: ember 1.8s ease-out infinite;
+    opacity: 0;
+    will-change: transform, opacity;
+  }
+  .flames-layer .ember.big {
+    width: 11px; height: 11px;
+    box-shadow: 0 0 18px #ffae00, 0 0 36px #ff4d00, 0 0 60px #ff2600;
+  }
+  @keyframes ember {
+    0%   { transform: translate(0,0) scale(1);   opacity: 0; }
+    8%   { opacity: 1; }
+    100% { transform: translate(var(--dx,0), -660px) scale(.35); opacity: 0; }
+  }
+
+  body.fx-1 .flames-layer { opacity: .35; }
+  body.fx-2 .flames-layer { opacity: .7;  }
+  body.fx-3 .flames-layer { opacity: 1;   }
+  body.fx-3 .board-wrap { box-shadow: 0 30px 80px rgba(0,0,0,.55), 0 0 80px rgba(255,80,0,.45), inset 0 0 0 1px rgba(255,150,0,.3); }
+  body.fx-3 .board-wrap::before { opacity: .8; background: conic-gradient(from 0deg, #ff4d00, #ffae00, #ff2e93, #ff4d00); }
+
+  /* overlay (start / paused / dead) */
+  .overlay {
+    position: absolute; inset: 14px; border-radius: 14px;
+    display: none; align-items: center; justify-content: center;
+    background: radial-gradient(60% 60% at 50% 50%, rgba(20,0,40,.7), rgba(0,0,0,.85));
+    backdrop-filter: blur(6px);
+    text-align: center; padding: 24px;
+  }
+  .overlay.show { display: flex; }
+  .overlay .inner { max-width: 320px; }
+  .overlay h2 {
+    font-family: "Anton", sans-serif; font-size: 56px; line-height: .9;
+    margin: 0 0 8px;
+    background: linear-gradient(180deg, #fff, var(--hot));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .overlay p { color: var(--ink-2); margin: 6px 0 18px; font-size: 14px; }
+  .btn {
+    font-family: "Anton", sans-serif; font-size: 22px; letter-spacing: .04em;
+    padding: 12px 22px; border-radius: 14px; border: 1px solid rgba(255,255,255,.18);
+    background: linear-gradient(180deg, #ff2e93, #b8005f);
+    color: #fff; cursor: pointer;
+    box-shadow: 0 10px 30px rgba(255,46,147,.45), inset 0 1px 0 rgba(255,255,255,.3);
+    transition: transform .12s ease, box-shadow .12s ease;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn:active { transform: translateY(1px); }
+
+  /* ---------- right column ---------- */
+  .mini-board {
+    display: flex; justify-content: center; align-items: center;
+    background: linear-gradient(180deg, #0c0220, #060018);
+    border-radius: 12px; padding: 10px;
+    border: 1px solid var(--panel-bd);
+  }
+  .next-list { display: flex; flex-direction: column; gap: 8px; }
+  .chat {
+    display: flex; flex-direction: column; gap: 8px;
+    max-height: 220px; overflow: hidden;
+    mask-image: linear-gradient(180deg, transparent, #000 25%, #000 80%, transparent);
+  }
+  .msg {
+    font-size: 12px; line-height: 1.35;
+    display: flex; gap: 8px; align-items: flex-start;
+    opacity: 0; transform: translateY(8px);
+    animation: msgIn .35s ease forwards;
+  }
+  .msg .av {
+    width: 22px; height: 22px; border-radius: 50%; flex: none;
+    background: linear-gradient(135deg, #ff2e93, #29e4ff);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; color: #fff;
+    border: 1px solid rgba(255,255,255,.2);
+  }
+  .msg .body { color: var(--ink-2); }
+  .msg .body b { color: var(--ink); font-weight: 600; }
+  @keyframes msgIn { to { opacity: 1; transform: translateY(0); } }
+
+  .footer {
+    font-family: "JetBrains Mono", monospace; font-size: 10px;
+    color: var(--ink-3); letter-spacing: .2em; text-align: center;
+    text-transform: uppercase; padding-top: 4px;
+  }
+
+  /* --- temporary FX demo --- */
+  .demo-badge {
+    position: fixed; top: 14px; left: 50%; transform: translateX(-50%);
+    z-index: 200;
+    font-family: "JetBrains Mono", monospace; font-size: 11px;
+    letter-spacing: .22em; text-transform: uppercase;
+    background: linear-gradient(180deg, rgba(255,46,147,.35), rgba(41,228,255,.2));
+    border: 1px solid rgba(255,255,255,.35);
+    color: #fff;
+    padding: 8px 16px; border-radius: 99px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 30px rgba(0,0,0,.4);
+    display: none;
+    user-select: none;
+  }
+  body.demo-on .demo-badge { display: block; }
+  body.demo-on .overlay { display: none !important; }
+  .demo-badge .pill {
+    display: inline-block; margin-left: 8px;
+    padding: 2px 8px; border-radius: 99px;
+    background: rgba(0,0,0,.4); border: 1px solid rgba(255,255,255,.2);
+    color: var(--lime);
+  }
+
+  @media (max-width: 1100px) {
+    .app { grid-template-columns: 1fr; height: auto; overflow:auto; }
+    body { overflow: auto; }
+  }
+</style>
+</head>
+<body>
+<div class="bg-glow" aria-hidden="true"></div>
+<div class="demo-badge" id="demo-badge">FX DEMO · press <b>D</b> to stop · TIER <span class="pill" id="demo-tier">—</span></div>
+<div class="app">
+
+  <!-- LEFT -->
+  <aside class="left-col" style="display:flex; flex-direction:column; gap:14px;">
+    <div class="brand">
+      <h1 class="wordmark">TETRI<span class="zz">ZZ</span></h1>
+      <span class="tag">drop blocks · cook lines · <b>get the W</b></span>
+    </div>
+
+    <div class="panel">
+      <h3>The Rizzboard</h3>
+      <div class="stat-row"><span class="k">Rizz</span><span class="v hot" id="score">0</span></div>
+      <div class="stat-row"><span class="k">Lines mogged</span><span class="v cyan" id="lines">0</span></div>
+      <div class="stat-row"><span class="k">Sigma level</span><span class="v lime" id="level">1</span></div>
+      <div class="meter"><i id="lvlbar"></i></div>
+      <div class="meter-row"><span>next level</span><span id="lvlnext">0 / 10</span></div>
+    </div>
+
+    <div class="panel">
+      <h3>Combo · Mog streak</h3>
+      <div class="stat-row"><span class="k">Streak</span><span class="v hot" id="combo">0×</span></div>
+      <div class="stat-row"><span class="k">Best rizz</span><span class="v" id="best">0</span></div>
+    </div>
+
+    <div class="panel">
+      <h3>How to cook</h3>
+      <div class="keys">
+        <kbd>← →</kbd><span>shift the rizz</span>
+        <kbd>↓</kbd><span>soft drop (mid)</span>
+        <kbd>Space</kbd><span>hard drop (sigma)</span>
+        <kbd>↑ / X</kbd><span>rotate cw</span>
+        <kbd>Z</kbd><span>rotate ccw</span>
+        <kbd>Shift / C</kbd><span>hold piece</span>
+        <kbd>P</kbd><span>pause</span>
+        <kbd>R</kbd><span>reset</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- CENTER -->
+  <section class="stage">
+    <div class="topline">
+      <span class="live">live · 12.4k watching</span>
+      <span id="status">drop in to start</span>
+    </div>
+    <div class="board-wrap" id="board-wrap">
+      <canvas id="board" width="300" height="600"></canvas>
+      <div class="flames-layer" id="flames"></div>
+      <div class="reactions" id="reactions"></div>
+      <div class="overlay show" id="overlay">
+        <div class="inner">
+          <h2 id="ov-title">TETRIZZ</h2>
+          <p id="ov-sub">press <b>SPACE</b> or tap below to start cookin'. arrows to move, space to slam, shift to hold. lock in.</p>
+          <button class="btn" id="ov-btn">START THE RIZZ</button>
+        </div>
+      </div>
+    </div>
+    <div class="footer">v1 · gyatt edition · no cap fr fr</div>
+  </section>
+
+  <!-- RIGHT -->
+  <aside class="right-col" style="display:flex; flex-direction:column; gap:14px;">
+    <div class="panel">
+      <h3>Hold</h3>
+      <div class="mini-board"><canvas id="hold" width="140" height="120"></canvas></div>
+    </div>
+    <div class="panel">
+      <h3>Next in queue</h3>
+      <div class="next-list">
+        <div class="mini-board"><canvas class="next" width="140" height="120"></canvas></div>
+        <div class="mini-board"><canvas class="next" width="140" height="100"></canvas></div>
+        <div class="mini-board"><canvas class="next" width="140" height="100"></canvas></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>Chat is wildin'</h3>
+      <div class="chat" id="chat"></div>
+    </div>
+  </aside>
+</div>
+
+<script>
+/* ============================================================
+   TETRIZZ — a tiktok-brainrot-coded tetris
+   ============================================================ */
+
+const COLS = 10, ROWS = 20, CELL = 30;
+const board = document.getElementById('board');
+const ctx = board.getContext('2d');
+
+const holdCv = document.getElementById('hold');
+const holdCtx = holdCv.getContext('2d');
+const nextCvs = [...document.querySelectorAll('canvas.next')].map(c => ({c, x: c.getContext('2d')}));
+
+const reactionsEl = document.getElementById('reactions');
+const boardWrap = document.getElementById('board-wrap');
+const flamesLayer = document.getElementById('flames');
+const overlay = document.getElementById('overlay');
+const ovTitle = document.getElementById('ov-title');
+const ovSub   = document.getElementById('ov-sub');
+const ovBtn   = document.getElementById('ov-btn');
+const statusEl = document.getElementById('status');
+const chatEl = document.getElementById('chat');
+
+const scoreEl = document.getElementById('score');
+const linesEl = document.getElementById('lines');
+const levelEl = document.getElementById('level');
+const comboEl = document.getElementById('combo');
+const bestEl  = document.getElementById('best');
+const lvlBar  = document.getElementById('lvlbar');
+const lvlNxt  = document.getElementById('lvlnext');
+
+// ---------- pieces ----------
+// SRS-ish rotations stored as bounding-box matrices per piece
+const SHAPES = {
+  I: [
+    [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],
+    [[0,0,1,0],[0,0,1,0],[0,0,1,0],[0,0,1,0]],
+    [[0,0,0,0],[0,0,0,0],[1,1,1,1],[0,0,0,0]],
+    [[0,1,0,0],[0,1,0,0],[0,1,0,0],[0,1,0,0]],
+  ],
+  O: [
+    [[1,1],[1,1]],
+    [[1,1],[1,1]],
+    [[1,1],[1,1]],
+    [[1,1],[1,1]],
+  ],
+  T: [
+    [[0,1,0],[1,1,1],[0,0,0]],
+    [[0,1,0],[0,1,1],[0,1,0]],
+    [[0,0,0],[1,1,1],[0,1,0]],
+    [[0,1,0],[1,1,0],[0,1,0]],
+  ],
+  S: [
+    [[0,1,1],[1,1,0],[0,0,0]],
+    [[0,1,0],[0,1,1],[0,0,1]],
+    [[0,0,0],[0,1,1],[1,1,0]],
+    [[1,0,0],[1,1,0],[0,1,0]],
+  ],
+  Z: [
+    [[1,1,0],[0,1,1],[0,0,0]],
+    [[0,0,1],[0,1,1],[0,1,0]],
+    [[0,0,0],[1,1,0],[0,1,1]],
+    [[0,1,0],[1,1,0],[1,0,0]],
+  ],
+  J: [
+    [[1,0,0],[1,1,1],[0,0,0]],
+    [[0,1,1],[0,1,0],[0,1,0]],
+    [[0,0,0],[1,1,1],[0,0,1]],
+    [[0,1,0],[0,1,0],[1,1,0]],
+  ],
+  L: [
+    [[0,0,1],[1,1,1],[0,0,0]],
+    [[0,1,0],[0,1,0],[0,1,1]],
+    [[0,0,0],[1,1,1],[1,0,0]],
+    [[1,1,0],[0,1,0],[0,1,0]],
+  ],
+};
+
+// rizz-coded names + colors (neon vapor palette)
+const META = {
+  I: { name: 'SIGMA',   color: '#29e4ff', glow: 'rgba(41,228,255,.65)' },
+  O: { name: 'GYATT',   color: '#ffd400', glow: 'rgba(255,212,0,.65)'  },
+  T: { name: 'RIZZ',    color: '#b66bff', glow: 'rgba(182,107,255,.7)' },
+  S: { name: 'SUS',     color: '#c8ff3a', glow: 'rgba(200,255,58,.65)' },
+  Z: { name: 'SKIBIDI', color: '#ff4d4d', glow: 'rgba(255,77,77,.7)'   },
+  J: { name: 'OHIO',    color: '#5b8cff', glow: 'rgba(91,140,255,.7)'  },
+  L: { name: 'GLIZZY',  color: '#ff8a3d', glow: 'rgba(255,138,61,.7)'  },
+};
+
+const TYPES = Object.keys(SHAPES);
+
+// ---------- state ----------
+let grid;            // ROWS x COLS, 0 or piece type letter
+let bag = [];
+let current, next1, next2, next3, hold;
+let canHold = true;
+let dropTimer = 0;
+let lastTime = 0;
+let dropInterval = 800; // ms, will scale by level
+let running = false;
+let paused = false;
+let dead = false;
+
+let score = 0;
+let lines = 0;
+let level = 1;
+let combo = -1;
+let best = +(localStorage.getItem('tetrizz_best') || 0);
+bestEl.textContent = best;
+
+// ---------- sound effects ----------
+const SFX_PATHS = {
+  rizz:    'sounds/rizz.mp3',     // single line / fx-1
+  bombo:   'sounds/bombo.mp3',    // fx-2
+  siren:   'sounds/siren.mp3',    // fx-3
+  taco:    'sounds/taco.mp3',     // streak loss A
+  fahhh:   'sounds/fahhh.mp3',    // streak loss B
+  tuco:    'sounds/tuco.mp3',     // streak loss C
+  charlie: 'sounds/charlie.mp3',  // new high score
+};
+const SFX_VOL = {
+  rizz: .7, bombo: .7, siren: .45, taco: .6, fahhh: .65, tuco: .75, charlie: .8,
+};
+// per-sound start offset in seconds (skip leading silence / slow attack)
+const SFX_OFFSET = {
+  rizz: 1.10,  // skip the slow buildup at the start of the RIZZ voiceline
+};
+
+// devtools helper: live-tune the rizz start offset
+// usage: tuneRizz(0.3) — sets offset, plays a preview at the new value
+window.tuneRizz = function(offset) {
+  if (typeof offset === 'number') {
+    SFX_OFFSET.rizz = offset;
+    console.log('[rizz] offset set to', offset, 's');
+  } else {
+    console.log('[rizz] current offset', SFX_OFFSET.rizz, 's');
+  }
+  playSfx('rizz');
+};
+// pool of pre-loaded clones per sound so overlapping plays don't cut off
+// AND so currentTime seeks work reliably (cloneNode at play-time can race the seek)
+const POOL_SIZE = 4;
+const SFX_POOLS = {};
+for (const [k,v] of Object.entries(SFX_PATHS)) {
+  const pool = [];
+  for (let i = 0; i < POOL_SIZE; i++) {
+    const a = new Audio(v);
+    a.preload = 'auto';
+    pool.push(a);
+  }
+  SFX_POOLS[k] = { pool, idx: 0 };
+}
+function playSfx(name) {
+  const slot = SFX_POOLS[name];
+  if (!slot) return;
+  const a = slot.pool[slot.idx];
+  slot.idx = (slot.idx + 1) % POOL_SIZE;
+  try {
+    a.pause();
+    a.currentTime = SFX_OFFSET[name] || 0;
+  } catch (_) {}
+  a.volume = SFX_VOL[name] ?? .7;
+  a.play().catch(()=>{});
+}
+
+const STREAK_LOSS_SFX = ['taco','fahhh','tuco'];
+let streakLossIdx = 0;
+let sessionStartBest = best;
+let highScoreAnnounced = false;
+
+function emptyGrid() {
+  return Array.from({length: ROWS}, () => Array(COLS).fill(0));
+}
+
+function refillBag() {
+  const types = [...TYPES];
+  for (let i = types.length -1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i+1));
+    [types[i], types[j]] = [types[j], types[i]];
+  }
+  bag.push(...types);
+}
+function nextPiece() {
+  if (bag.length < 7) refillBag();
+  const t = bag.shift();
+  return {
+    type: t,
+    rot: 0,
+    x: Math.floor((COLS - SHAPES[t][0][0].length) / 2),
+    y: t === 'I' ? -1 : 0,
+  };
+}
+
+function reset() {
+  grid = emptyGrid();
+  bag = [];
+  refillBag(); refillBag();
+  current = nextPiece();
+  next1 = nextPiece(); next2 = nextPiece(); next3 = nextPiece();
+  hold = null; canHold = true;
+  score = 0; lines = 0; level = 1; combo = -1;
+  dropInterval = 800;
+  dead = false; paused = false;
+  clearFX();
+  sessionStartBest = best;
+  highScoreAnnounced = false;
+  updateHUD();
+  draw();
+  drawNexts();
+  drawHold();
+}
+
+// ---------- collision / lock ----------
+function shape(p) { return SHAPES[p.type][p.rot]; }
+
+function collides(p, dx=0, dy=0, dr=0) {
+  const s = SHAPES[p.type][(p.rot + dr + 4) % 4];
+  for (let r=0; r<s.length; r++) {
+    for (let c=0; c<s[r].length; c++) {
+      if (!s[r][c]) continue;
+      const nx = p.x + c + dx;
+      const ny = p.y + r + dy;
+      if (nx < 0 || nx >= COLS || ny >= ROWS) return true;
+      if (ny >= 0 && grid[ny][nx]) return true;
+    }
+  }
+  return false;
+}
+
+function merge(p) {
+  const s = shape(p);
+  for (let r=0; r<s.length; r++)
+    for (let c=0; c<s[r].length; c++)
+      if (s[r][c]) {
+        const ny = p.y + r;
+        if (ny < 0) { dead = true; return; }
+        grid[ny][p.x + c] = p.type;
+      }
+}
+
+function clearLines() {
+  let cleared = 0;
+  for (let r = ROWS-1; r >= 0; r--) {
+    if (grid[r].every(v => v !== 0)) {
+      grid.splice(r,1);
+      grid.unshift(Array(COLS).fill(0));
+      cleared++;
+      r++; // re-check this row
+    }
+  }
+  return cleared;
+}
+
+// ---------- moves ----------
+const KICKS = [[0,0],[-1,0],[1,0],[0,-1],[-2,0],[2,0]];
+function rotate(dir) {
+  if (!current || paused || dead) return;
+  for (const [dx,dy] of KICKS) {
+    if (!collides(current, dx, dy, dir)) {
+      current.rot = (current.rot + dir + 4) % 4;
+      current.x += dx;
+      current.y += dy;
+      return true;
+    }
+  }
+  return false;
+}
+function move(dx) {
+  if (!current || paused || dead) return;
+  if (!collides(current, dx, 0)) current.x += dx;
+}
+function softDrop() {
+  if (!current || paused || dead) return;
+  if (!collides(current, 0, 1)) { current.y++; score += 1; updateHUD(); }
+  else lock();
+}
+function hardDrop() {
+  if (!current || paused || dead) return;
+  let dist = 0;
+  while (!collides(current, 0, 1)) { current.y++; dist++; }
+  score += dist * 2;
+  lock(true);
+}
+function holdPiece() {
+  if (!canHold || paused || dead) return;
+  if (hold == null) {
+    hold = current.type;
+    current = next1;
+    next1 = next2; next2 = next3; next3 = nextPiece();
+  } else {
+    const t = hold;
+    hold = current.type;
+    current = {
+      type: t,
+      rot: 0,
+      x: Math.floor((COLS - SHAPES[t][0][0].length) / 2),
+      y: t === 'I' ? -1 : 0,
+    };
+  }
+  canHold = false;
+  drawHold();
+  drawNexts();
+}
+
+function lock(hard=false) {
+  merge(current);
+  if (dead) { onDie(); return; }
+  const cleared = clearLines();
+  scoreClear(cleared, hard);
+  current = next1;
+  next1 = next2; next2 = next3; next3 = nextPiece();
+  canHold = true;
+  if (collides(current, 0, 0)) { dead = true; onDie(); return; }
+  drawNexts();
+}
+
+// ---------- scoring + meme reactions ----------
+const CLEAR_PHRASES = {
+  1: ['BUSSIN!', 'no cap', 'goofy ahh', 'OK SIGMA', 'BASED', 'I LIKE YA CUT G', 'very demure', 'no diddy', 'chin up king 👑'],
+  2: ['SHEESH', 'GRIDDY!', 'two-piece', 'POGGERS', 'AURA +500', 'HIT OR MISS', 'MATCH MY FREAK', 'canon event', 'very mindful'],
+  3: ['MEWING!', 'GIGACHAD', 'REDPILLED', 'jaw locked in', 'AYO THE PIZZA HERE', 'BING CHILLING', 'LOCKED IN', 'BIG 2026 ENERGY', 'CROWN ON 👑'],
+  4: ['RIZZ GOD!!', 'TETRIZZ', 'OHIO RIZZ', 'GOATED W/ THE SAUCE', 'KAI CENAT W', 'MORBIN TIME', 'unc said FOUR', 'PUT THE FRIES IN THE BAG', "IT'S COOKED", "NPCs RATIO'D"]
+};
+const CHAT_LINES = [
+  "@gigachad420: bro is HIM 😤",
+  "@duke_dennis: did you pray today brodie?",
+  "@kai_cenat: AYO THE PIZZA HERE 🍕",
+  "@livvy_dunne: rizzing up baby gronk fr",
+  "@john_pork: i'm here",
+  "@grimace_shake: this is goofy ahh gameplay",
+  "@ishowspeed: SUIIIII",
+  "@npc_steve: skibidi sigma",
+  "@mewingmaxxer: gyatt damn 🥶",
+  "@ankha_dancer: only in ohio 💀",
+  "@blud_dawg: blud really thinks he's carti",
+  "@nathaniel_b: lightskin stare engaged",
+  "@bing_chilling_69: +99 social credit",
+  "@andrew_t8: top G grindset only",
+  "@quandale.d: hitting the griddy rn",
+  "@looksmaxxer: this is mogging energy",
+  "@delulu_queen: it's giving alpha omega",
+  "@chungus_69: wholesome 100 keanu reeves",
+  "@bababooey: L + ratio + you fell off",
+  "@sigmafemale: aura points stacking",
+  "@brainrotcore: NO BC HE'S CRASHING OUT",
+  "@huggywuggy: garten of banban gameplay",
+  "@omar_referee: OFFSIDE bro that was sus",
+  "@sin.city: monday left me broken 🥀",
+  "@gronk_jr: literally hitting the griddy",
+  "@josh.hutch: coffin of andy and leyley",
+  "@biggest_bird: PLUH",
+  "@mr.beast.fan: 10000 rizz incoming",
+  "@momofiveboys: my son is watching this fr",
+  "@bro.wat: 'tetrizz' is killing me 💀",
+  "@fries_in_bag: PUT THE FRIES IN THE BAG BRO 🍟",
+  "@aura_check: you do not have aura",
+  "@crashout_core: this is crashout core ngl",
+  "@match.my.freak: trying to match my freak",
+  "@big_2026: it's giving big 2026 fr",
+  "@actuallycooked: it's actually cooked bro",
+  "@lockin_szn: bro is SO locked in 🔒",
+  "@motion_check: no motion. zero. nada.",
+  "@zero_tea: absolute zero tea ☕",
+  "@nodiddy_fr: no diddy 🚫",
+  "@micro_inf: strictly micro-influencer behavior",
+  "@demure.mindful: very demure, very mindful ✨",
+  "@chinup.king: chin up king, your crown is slipping 👑",
+  "@canon_event: this is a canon event you can't intervene",
+  "@absolute.opp: you absolute opp 💀",
+  "@standard.npc: standard issue NPC behavior",
+];
+function scoreClear(n, hard) {
+  const base = [0, 100, 300, 500, 800][n] || 0;
+  score += base * level;
+  if (n > 0) {
+    combo++;
+    lines += n;
+    if (combo > 0) score += 50 * combo * level;
+    // level up every 5 lines now, faster speed curve
+    const newLevel = Math.floor(lines / 5) + 1;
+    if (newLevel !== level) {
+      level = newLevel;
+      dropInterval = Math.max(60, 800 * Math.pow(0.78, level - 1));
+      flash(`LEVEL ${level} · SPEED UP 🏃`, 'cyan', -8, 'big');
+    }
+    const phrases = CLEAR_PHRASES[n];
+    const sizeForLines = n >= 4 ? 'huge' : (n >= 3 ? 'big' : '');
+    flash(phrases[Math.floor(Math.random()*phrases.length)], n>=4 ? 'hot' : (n>=3 ? 'lime' : 'yel'), (Math.random()*20 - 10), sizeForLines);
+    if (combo >= 2) flash(`${combo+1}× MOG STREAK`, 'cyan', 8, 'small');
+    const intensity = (n - 1) + combo; // multi-line and/or consecutive streaks both fuel FX
+    applyComboFX(intensity);
+    if (currentFxTier >= 2) spawnEmbers(currentFxTier === 3 ? 10 : 5);
+    // tier-based clear sound
+    if (currentFxTier === 3) playSfx('siren');
+    else if (currentFxTier === 2) playSfx('bombo');
+    else playSfx('rizz'); // tier 0 (single line, no streak) and tier 1
+    pushChat();
+  } else {
+    const prevTier = currentFxTier;
+    applyComboFX(0);
+    if (prevTier > 0) {
+      playSfx(STREAK_LOSS_SFX[streakLossIdx % STREAK_LOSS_SFX.length]);
+      streakLossIdx++;
+    }
+    combo = -1;
+  }
+  if (score > best) {
+    best = score; localStorage.setItem('tetrizz_best', best);
+  }
+  if (!highScoreAnnounced && sessionStartBest > 0 && score > sessionStartBest) {
+    highScoreAnnounced = true;
+    playSfx('charlie');
+    flash('NEW HIGH SCORE 🚨', 'cyan', -4, 'huge');
+  }
+  updateHUD();
+}
+
+function flash(text, kind='hot', rot=-6, size='') {
+  const el = document.createElement('div');
+  const validKind = ['hot','cyan','lime','yel','fire'].includes(kind) ? kind : '';
+  const validSize = ['small','big','huge'].includes(size) ? size : '';
+  el.className = ['reaction', validKind, validSize].filter(Boolean).join(' ');
+  el.style.setProperty('--r', rot + 'deg');
+  el.style.left = (28 + Math.random()*44) + '%';
+  el.style.top  = (40 + Math.random()*30) + '%';
+  el.textContent = text;
+  reactionsEl.appendChild(el);
+  setTimeout(() => el.remove(), 2700);
+}
+
+// ---------- combo FX tiers ----------
+let currentFxTier = 0;
+let emberInterval = null;
+function applyComboFX(intensity) {
+  // intensity = (lines this clear - 1) + (consecutive streak - 1)
+  // tetrizz alone (4 lines) → tier 3 instantly; double → tier 1; etc.
+  let tier = 0;
+  if (intensity >= 3) tier = 3;
+  else if (intensity >= 2) tier = 2;
+  else if (intensity >= 1) tier = 1;
+
+  if (tier === currentFxTier) return;
+
+  document.body.classList.remove('fx-1','fx-2','fx-3');
+  if (tier > 0) document.body.classList.add('fx-' + tier);
+
+  if (emberInterval) { clearInterval(emberInterval); emberInterval = null; }
+
+  if (tier > currentFxTier) {
+    if (tier === 1) { flash('HEATING UP 🔥', 'yel', -8, 'big'); spawnEmbers(8); }
+    else if (tier === 2) { flash('COOKING 🔥🔥', 'hot', 5, 'big'); spawnEmbers(18); }
+    else if (tier === 3) { flash('BOARD IS COOKED 🔥🔥🔥', 'fire', -3, 'huge'); spawnEmbers(36); }
+  } else if (tier === 0 && currentFxTier > 0) {
+    const lossMsgs = [
+      'streak cooked 😭',
+      'aura LOST',
+      'crown is slipping 👑',
+      'absolute opp 💀',
+      'no motion bro',
+      'standard issue NPC',
+      'canon event ig',
+    ];
+    flash(lossMsgs[Math.floor(Math.random()*lossMsgs.length)], 'small', 0, 'small');
+  }
+
+  // continuous ember rain while on fire
+  if (tier === 2) emberInterval = setInterval(() => spawnEmbers(2), 260);
+  else if (tier === 3) emberInterval = setInterval(() => spawnEmbers(4, true), 140);
+
+  currentFxTier = tier;
+}
+
+function spawnEmbers(n, allowBig=false) {
+  for (let i = 0; i < n; i++) {
+    const e = document.createElement('div');
+    e.className = 'ember' + (allowBig && Math.random() < .25 ? ' big' : '');
+    e.style.left = (Math.random()*100) + '%';
+    e.style.setProperty('--dx', (Math.random()*120 - 60) + 'px');
+    e.style.animationDuration = (1.1 + Math.random()*1.8) + 's';
+    e.style.animationDelay = (Math.random()*.4) + 's';
+    flamesLayer.appendChild(e);
+    setTimeout(() => e.remove(), 3200);
+  }
+}
+function clearFX() {
+  document.body.classList.remove('fx-1','fx-2','fx-3');
+  currentFxTier = 0;
+  if (emberInterval) { clearInterval(emberInterval); emberInterval = null; }
+  flamesLayer.querySelectorAll('.ember').forEach(e => e.remove());
+}
+
+function pushChat() {
+  const msg = CHAT_LINES[Math.floor(Math.random()*CHAT_LINES.length)];
+  const div = document.createElement('div');
+  div.className = 'msg';
+  const initials = msg.split(':')[0].replace('@','').slice(0,1).toUpperCase();
+  div.innerHTML = `<div class="av">${initials}</div><div class="body"><b>${escapeHtml(msg.split(':')[0])}</b>${escapeHtml(': ' + msg.split(':').slice(1).join(':').trim())}</div>`;
+  chatEl.prepend(div);
+  while (chatEl.children.length > 8) chatEl.removeChild(chatEl.lastChild);
+}
+function escapeHtml(s){ return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+function updateHUD() {
+  scoreEl.textContent = score.toLocaleString();
+  linesEl.textContent = lines;
+  levelEl.textContent = level;
+  comboEl.textContent = (combo >= 0 ? combo + 1 : 0) + '×';
+  bestEl.textContent  = best.toLocaleString();
+  const linesInLvl = lines % 5;
+  lvlBar.style.width = (linesInLvl * 20) + '%';
+  lvlNxt.textContent = linesInLvl + ' / 5';
+}
+
+// ---------- drawing ----------
+function drawCell(x, y, type, ctx2 = ctx, cell = CELL, ghost=false) {
+  if (!type) return;
+  const m = META[type];
+  const px = x * cell, py = y * cell;
+  ctx2.save();
+  if (ghost) {
+    ctx2.globalAlpha = .18;
+    ctx2.fillStyle = m.color;
+    ctx2.fillRect(px+2, py+2, cell-4, cell-4);
+    ctx2.strokeStyle = m.color;
+    ctx2.lineWidth = 1;
+    ctx2.strokeRect(px+1.5, py+1.5, cell-3, cell-3);
+    ctx2.restore();
+    return;
+  }
+  // outer glow
+  ctx2.shadowColor = m.glow;
+  ctx2.shadowBlur = 14;
+  ctx2.fillStyle = m.color;
+  roundRect(ctx2, px+1, py+1, cell-2, cell-2, 5, true);
+  // inner highlight
+  ctx2.shadowBlur = 0;
+  ctx2.globalAlpha = .35;
+  const grad = ctx2.createLinearGradient(px, py, px, py+cell);
+  grad.addColorStop(0, 'rgba(255,255,255,.65)');
+  grad.addColorStop(.4, 'rgba(255,255,255,0)');
+  ctx2.fillStyle = grad;
+  roundRect(ctx2, px+2, py+2, cell-4, cell-4, 4, true);
+  // inset shadow bottom-right
+  ctx2.globalAlpha = .4;
+  ctx2.fillStyle = 'rgba(0,0,0,.45)';
+  ctx2.fillRect(px+cell-4, py+3, 2, cell-6);
+  ctx2.fillRect(px+3, py+cell-4, cell-6, 2);
+  ctx2.restore();
+}
+
+function roundRect(c, x, y, w, h, r, fill) {
+  c.beginPath();
+  c.moveTo(x+r, y);
+  c.arcTo(x+w, y,   x+w, y+h, r);
+  c.arcTo(x+w, y+h, x,   y+h, r);
+  c.arcTo(x,   y+h, x,   y,   r);
+  c.arcTo(x,   y,   x+w, y,   r);
+  c.closePath();
+  if (fill) c.fill();
+}
+
+function drawGrid() {
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,.04)';
+  ctx.lineWidth = 1;
+  for (let c=1; c<COLS; c++) {
+    ctx.beginPath();
+    ctx.moveTo(c*CELL+.5, 0);
+    ctx.lineTo(c*CELL+.5, ROWS*CELL);
+    ctx.stroke();
+  }
+  for (let r=1; r<ROWS; r++) {
+    ctx.beginPath();
+    ctx.moveTo(0, r*CELL+.5);
+    ctx.lineTo(COLS*CELL, r*CELL+.5);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function ghostY() {
+  let g = {...current};
+  while (!collides(g, 0, 1)) g.y++;
+  return g.y;
+}
+
+function draw() {
+  ctx.clearRect(0,0,board.width, board.height);
+  drawGrid();
+  // locked cells
+  for (let r=0; r<ROWS; r++)
+    for (let c=0; c<COLS; c++)
+      if (grid[r][c]) drawCell(c, r, grid[r][c]);
+  // ghost
+  if (current && !dead) {
+    const gy = ghostY();
+    const s = shape(current);
+    for (let r=0; r<s.length; r++)
+      for (let c=0; c<s[r].length; c++)
+        if (s[r][c]) drawCell(current.x+c, gy+r, current.type, ctx, CELL, true);
+    // current
+    for (let r=0; r<s.length; r++)
+      for (let c=0; c<s[r].length; c++)
+        if (s[r][c]) {
+          const yy = current.y + r;
+          if (yy >= 0) drawCell(current.x+c, yy, current.type);
+        }
+  }
+}
+
+function drawMini(canvasCtx, w, h, type) {
+  canvasCtx.clearRect(0,0,w,h);
+  if (!type) return;
+  const s = SHAPES[type][0];
+  // trim
+  let minR=4,maxR=-1,minC=4,maxC=-1;
+  for (let r=0; r<s.length; r++)
+    for (let c=0; c<s[r].length; c++)
+      if (s[r][c]) { minR=Math.min(minR,r); maxR=Math.max(maxR,r); minC=Math.min(minC,c); maxC=Math.max(maxC,c); }
+  const cols = maxC-minC+1, rows = maxR-minR+1;
+  const cell = Math.min((w-16)/cols, (h-16)/rows, 22);
+  const offX = (w - cols*cell)/2;
+  const offY = (h - rows*cell)/2;
+  for (let r=0; r<rows; r++) {
+    for (let c=0; c<cols; c++) {
+      if (s[minR+r][minC+c]) {
+        const px = offX + c*cell, py = offY + r*cell;
+        canvasCtx.save();
+        canvasCtx.shadowColor = META[type].glow;
+        canvasCtx.shadowBlur = 12;
+        canvasCtx.fillStyle = META[type].color;
+        roundRect(canvasCtx, px+1, py+1, cell-2, cell-2, 4, true);
+        canvasCtx.shadowBlur = 0;
+        canvasCtx.globalAlpha = .3;
+        canvasCtx.fillStyle = 'rgba(255,255,255,.7)';
+        roundRect(canvasCtx, px+2, py+2, cell-4, (cell-4)/2, 3, true);
+        canvasCtx.restore();
+      }
+    }
+  }
+  // label
+  canvasCtx.fillStyle = 'rgba(255,255,255,.5)';
+  canvasCtx.font = '10px "JetBrains Mono", monospace';
+  canvasCtx.textAlign = 'left';
+  canvasCtx.fillText(META[type].name, 8, h-6);
+}
+
+function drawNexts() {
+  const queue = [next1, next2, next3];
+  nextCvs.forEach((nc, i) => {
+    drawMini(nc.x, nc.c.width, nc.c.height, queue[i] && queue[i].type);
+  });
+}
+function drawHold() {
+  drawMini(holdCtx, holdCv.width, holdCv.height, hold);
+}
+
+// ---------- loop ----------
+function loop(t) {
+  if (!lastTime) lastTime = t;
+  const dt = t - lastTime;
+  lastTime = t;
+  if (running && !paused && !dead) {
+    dropTimer += dt;
+    if (dropTimer > dropInterval) {
+      dropTimer = 0;
+      if (!collides(current, 0, 1)) current.y++;
+      else lock();
+    }
+    draw();
+  }
+  requestAnimationFrame(loop);
+}
+
+// ---------- start/over ----------
+function start() {
+  reset();
+  running = true;
+  paused = false;
+  dead = false;
+  overlay.classList.remove('show');
+  statusEl.textContent = 'cooking…';
+  draw();
+  drawNexts();
+  drawHold();
+}
+function onDie() {
+  running = false;
+  dead = true;
+  clearFX();
+  flash('YOU GOT THE ICK 💀', 'hot', -8, 'big');
+  ovTitle.textContent = 'YOU FELL OFF';
+  ovSub.innerHTML = `final rizz: <b>${score.toLocaleString()}</b> · lines mogged: <b>${lines}</b><br>${best === score && score > 0 ? "new BEST. ur him." : "ratio. skill issue. try again."}`;
+  ovBtn.textContent = 'RUN IT BACK';
+  overlay.classList.add('show');
+  statusEl.textContent = 'L taken · press to retry';
+}
+function togglePause() {
+  if (!running || dead) return;
+  paused = !paused;
+  if (paused) {
+    ovTitle.textContent = 'BRB MEWING';
+    ovSub.textContent = 'paused. hit P or click to lock back in.';
+    ovBtn.textContent = 'RESUME COOKING';
+    overlay.classList.add('show');
+    statusEl.textContent = 'paused';
+  } else {
+    overlay.classList.remove('show');
+    statusEl.textContent = 'cooking…';
+  }
+}
+
+ovBtn.addEventListener('click', () => {
+  if (dead || !running) start();
+  else togglePause();
+});
+
+// ---------- input ----------
+const DAS = 130, ARR = 40;
+const heldKeys = new Map();
+window.addEventListener('keydown', e => {
+  const k = e.key;
+  if (['ArrowLeft','ArrowRight','ArrowDown','ArrowUp',' ','Shift'].includes(k)) e.preventDefault();
+  if (!running && (k === ' ' || k === 'Enter')) { start(); return; }
+  if (k === 'p' || k === 'P' || k === 'Escape') { togglePause(); return; }
+  if (k === 'r' || k === 'R') { start(); return; }
+  if (dead || paused) return;
+
+  if (k === 'ArrowLeft')  { move(-1); startRepeat('L', () => move(-1)); }
+  else if (k === 'ArrowRight') { move(1); startRepeat('R', () => move(1)); }
+  else if (k === 'ArrowDown')  { softDrop(); startRepeat('D', softDrop, ARR/2); }
+  else if (k === 'ArrowUp' || k === 'x' || k === 'X') rotate(1);
+  else if (k === 'z' || k === 'Z') rotate(-1);
+  else if (k === ' ') hardDrop();
+  else if (k === 'Shift' || k === 'c' || k === 'C') holdPiece();
+});
+window.addEventListener('keyup', e => {
+  const k = e.key;
+  if (k === 'ArrowLeft')  stopRepeat('L');
+  else if (k === 'ArrowRight') stopRepeat('R');
+  else if (k === 'ArrowDown')  stopRepeat('D');
+});
+
+function startRepeat(id, fn, rate=ARR) {
+  if (heldKeys.has(id)) return;
+  const t = { das: setTimeout(() => {
+    const iv = setInterval(fn, rate);
+    heldKeys.set(id, { kind: 'iv', v: iv });
+  }, DAS) };
+  heldKeys.set(id, { kind: 'das', v: t.das });
+}
+function stopRepeat(id) {
+  const h = heldKeys.get(id);
+  if (!h) return;
+  if (h.kind === 'das') clearTimeout(h.v);
+  else clearInterval(h.v);
+  heldKeys.delete(id);
+}
+
+// ---------- boot ----------
+reset();
+overlay.classList.add('show');
+requestAnimationFrame(loop);
+
+// seed chat
+for (let i=0;i<3;i++) setTimeout(pushChat, 600 + i*900);
+
+// ====================================================
+// TEMPORARY: FX demo loop (press D to stop, removable)
+// ====================================================
+const demoBadge = document.getElementById('demo-badge');
+const demoTierEl = document.getElementById('demo-tier');
+
+// each step: a tier to apply + sample phrases to fire during the dwell
+const DEMO_STEPS = [
+  { label: '0 · rest',         intensity: 0, dwell: 1600, interval: 0,
+    phrases: [] },
+  { label: '1 · double / 2×',  intensity: 1, dwell: 4000, interval: 1100,
+    phrases: [
+      ['BUSSIN!',       'yel',  ''   ],
+      ['BASED',         'yel',  ''   ],
+      ['I LIKE YA CUT G','yel', ''   ],
+      ['HEATING UP 🔥', 'yel',  'big'],
+    ]},
+  { label: '2 · triple / 3×',  intensity: 2, dwell: 4500, interval: 1100,
+    phrases: [
+      ['SHEESH',        'hot',  'big'],
+      ['GRIDDY!',       'hot',  'big'],
+      ['MEWING!',       'lime', 'big'],
+      ['POGGERS',       'cyan', 'big'],
+      ['COOKING 🔥🔥',  'hot',  'big'],
+    ]},
+  { label: '3 · TETRIZZ / 4×', intensity: 3, dwell: 5500, interval: 1100,
+    phrases: [
+      ['RIZZ GOD!!',              'hot',  'huge'],
+      ['TETRIZZ',                 'hot',  'huge'],
+      ['GOATED W/ THE SAUCE',     'lime', 'big' ],
+      ['KAI CENAT W',             'cyan', 'big' ],
+      ['MORBIN TIME',             'hot',  'big' ],
+      ['BOARD IS COOKED 🔥🔥🔥', 'fire', 'huge'],
+    ]},
+];
+
+let demoTimer = null;
+let demoPhraseTimer = null;
+let demoStepIdx = 0;
+
+function startDemo() {
+  stopDemo(false);
+  document.body.classList.add('demo-on');
+  demoStepIdx = 0;
+  demoStep();
+}
+function demoStep() {
+  const s = DEMO_STEPS[demoStepIdx];
+  demoTierEl.textContent = s.label;
+
+  // force tier transition every time (so banners replay)
+  currentFxTier = 0;
+  document.body.classList.remove('fx-1','fx-2','fx-3');
+  if (emberInterval) { clearInterval(emberInterval); emberInterval = null; }
+  applyComboFX(s.intensity);
+
+  // periodic phrases for the duration of this step
+  if (demoPhraseTimer) clearInterval(demoPhraseTimer);
+  if (s.phrases.length) {
+    const fire = () => {
+      const [text, kind, size] = s.phrases[Math.floor(Math.random()*s.phrases.length)];
+      flash(text, kind, (Math.random()*24 - 12), size);
+    };
+    fire();
+    if (s.interval > 0) demoPhraseTimer = setInterval(fire, s.interval);
+  }
+
+  demoTimer = setTimeout(() => {
+    demoStepIdx = (demoStepIdx + 1) % DEMO_STEPS.length;
+    demoStep();
+  }, s.dwell);
+}
+function stopDemo(notify = true) {
+  if (demoTimer) clearTimeout(demoTimer);
+  if (demoPhraseTimer) clearInterval(demoPhraseTimer);
+  demoTimer = demoPhraseTimer = null;
+  document.body.classList.remove('demo-on');
+  clearFX();
+  reactionsEl.innerHTML = '';
+  if (notify) {
+    overlay.classList.add('show');
+    statusEl.textContent = 'demo off · drop in to play';
+  }
+}
+
+window.addEventListener('keydown', e => {
+  if (e.key === 'd' || e.key === 'D') {
+    if (document.body.classList.contains('demo-on')) stopDemo(true);
+    else startDemo();
+  }
+});
+
+// hook: if the user clicks START or presses Space, kill the demo first
+const _origStart = start;
+start = function() {
+  if (document.body.classList.contains('demo-on')) stopDemo(false);
+  return _origStart.apply(this, arguments);
+};
+
+// auto-start so the user immediately sees all FX tiers
+startDemo();
+</script>
+</body>
+</html>

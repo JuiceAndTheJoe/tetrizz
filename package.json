@@ -1,0 +1,20 @@
+{
+  "name": "tetrizz",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "TETRIZZ — brainrot-coded multiplayer Tetris on OSC",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm --workspace @tetrizz/client run dev",
+    "build": "npm --workspace @tetrizz/shared run build && npm --workspace @tetrizz/client run build",
+    "preview": "npm --workspace @tetrizz/client run preview",
+    "typecheck": "npm --workspaces --if-present run typecheck",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0"
+  }
+}
