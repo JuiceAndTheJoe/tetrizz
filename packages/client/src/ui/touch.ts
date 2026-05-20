@@ -7,33 +7,24 @@ import type { InputBindings } from '../input.ts';
 
 const REPEAT_DELAY_MS = 130;
 const REPEAT_RATE_MS = 40;
-const SOFT_DROP_RATE_MS = 20;
 
 export function mountTouchControls(bindings: InputBindings): HTMLElement {
   const root = document.createElement('div');
   root.className = 'touch-controls';
   root.innerHTML = `
-    <div class="touch-row touch-top">
-      <button class="touch-btn ccw" data-act="ccw" aria-label="rotate counter-clockwise">↺</button>
-      <button class="touch-btn cw"  data-act="cw"  aria-label="rotate clockwise">↻</button>
-      <button class="touch-btn hold" data-act="hold" aria-label="hold piece">HOLD</button>
-    </div>
-    <div class="touch-row touch-bottom">
-      <button class="touch-btn left"  data-act="left"  aria-label="move left" data-hold="1">←</button>
-      <button class="touch-btn soft"  data-act="soft"  aria-label="soft drop" data-hold="1">↓</button>
-      <button class="touch-btn right" data-act="right" aria-label="move right" data-hold="1">→</button>
-    </div>
-    <button class="touch-btn drop" data-act="drop" aria-label="hard drop">SLAM</button>
+    <button class="touch-btn left"  data-act="left"  aria-label="move left"      data-hold="1">←</button>
+    <button class="touch-btn right" data-act="right" aria-label="move right"     data-hold="1">→</button>
+    <button class="touch-btn cw"    data-act="cw"    aria-label="rotate clockwise">↻</button>
+    <button class="touch-btn hold"  data-act="hold"  aria-label="hold piece">HOLD</button>
+    <button class="touch-btn drop"  data-act="drop"  aria-label="hard drop">SLAM</button>
   `;
 
   const dispatch = (act: string): void => {
     switch (act) {
       case 'left':  bindings.onMoveLeft(); break;
       case 'right': bindings.onMoveRight(); break;
-      case 'soft':  bindings.onSoftDrop(); break;
       case 'drop':  bindings.onHardDrop(); break;
       case 'cw':    bindings.onRotateCW(); break;
-      case 'ccw':   bindings.onRotateCCW(); break;
       case 'hold':  bindings.onHold(); break;
     }
   };
@@ -49,9 +40,8 @@ export function mountTouchControls(bindings: InputBindings): HTMLElement {
   function startHold(act: string): void {
     if (holdTimers.has(act)) return;
     dispatch(act); // immediate fire
-    const rate = act === 'soft' ? SOFT_DROP_RATE_MS : REPEAT_RATE_MS;
     const das = window.setTimeout(() => {
-      const iv = window.setInterval(() => dispatch(act), rate);
+      const iv = window.setInterval(() => dispatch(act), REPEAT_RATE_MS);
       const existing = holdTimers.get(act);
       if (existing) existing.iv = iv;
     }, REPEAT_DELAY_MS);
