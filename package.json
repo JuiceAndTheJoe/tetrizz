@@ -9,12 +9,14 @@
   ],
   "scripts": {
     "dev": "npm --workspace @tetrizz/client run dev",
-    "build": "npm --workspace @tetrizz/shared run build && npm --workspace @tetrizz/client run build",
+    "build": "npm --workspace @tetrizz/shared run build && npm --workspace @tetrizz/server run build && npm --workspace @tetrizz/client run build",
     "preview": "npm --workspace @tetrizz/client run preview",
     "typecheck": "npm --workspaces --if-present run typecheck",
     "start": "node server.js"
   },
   "dependencies": {
+    "@colyseus/ws-transport": "0.15.3",
+    "colyseus": "0.15.57",
     "express": "^4.21.0",
     "pg": "^8.13.0"
   }

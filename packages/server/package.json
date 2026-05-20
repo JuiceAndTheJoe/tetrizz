@@ -1,0 +1,22 @@
+{
+  "name": "@tetrizz/server",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --platform=node --format=esm --target=node18 --outfile=dist/index.js --external:pg --banner:js=\"import{createRequire}from'module';const require=createRequire(import.meta.url);\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tetrizz/shared": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/pg": "^8.11.0",
+    "colyseus": "0.15.57",
+    "@colyseus/ws-transport": "0.15.3",
+    "esbuild": "^0.21.0",
+    "typescript": "^5.6.3"
+  }
+}

@@ -2,9 +2,11 @@
 // Serves packages/client/dist on $PORT with /health, /api/* leaderboard, and SPA fallback.
 
 import express from 'express';
+import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
+import { attachColyseus } from './packages/server/dist/index.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dist = path.join(__dirname, 'packages', 'client', 'dist');
@@ -39,6 +41,30 @@ async function initSchema(p) {
     );
   `);
   await p.query(`CREATE INDEX IF NOT EXISTS high_scores_score_idx ON high_scores (score DESC, created_at DESC);`);
+
+  await p.query(`
+    CREATE TABLE IF NOT EXISTS matches (
+      id            BIGSERIAL PRIMARY KEY,
+      seed          INTEGER NOT NULL,
+      started_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+      ended_at      TIMESTAMPTZ,
+      status        TEXT NOT NULL DEFAULT 'in_progress',
+      winner_handle TEXT
+    );
+  `);
+  await p.query(`
+    CREATE TABLE IF NOT EXISTS match_players (
+      match_id        BIGINT NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
+      handle          TEXT NOT NULL,
+      score           INTEGER NOT NULL DEFAULT 0,
+      lines           INTEGER NOT NULL DEFAULT 0,
+      attack_sent     INTEGER NOT NULL DEFAULT 0,
+      attack_received INTEGER NOT NULL DEFAULT 0,
+      ko_at           INTEGER,
+      PRIMARY KEY (match_id, handle)
+    );
+  `);
+  await p.query(`CREATE INDEX IF NOT EXISTS match_players_handle_idx ON match_players (handle);`);
 
   // One-time cleanup of smoke-test rows inserted while verifying the API.
   // Idempotent — deletes only the exact rows from earlier API smoke tests.
@@ -156,6 +182,8 @@ app.get(/^(?!\/api\/)[^.]*$/, (_req, res) => {
   res.sendFile(path.join(dist, 'index.html'));
 });
 
-app.listen(port, () => {
-  console.log(`[tetrizz] listening on :${port} — serving ${dist} — db=${pool ? 'on' : 'off'}`);
+const httpServer = http.createServer(app);
+attachColyseus(httpServer, { pool });
+httpServer.listen(port, () => {
+  console.log(`[tetrizz] listening on :${port} — serving ${dist} — db=${pool ? 'on' : 'off'} — colyseus=on`);
 });
