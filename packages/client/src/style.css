@@ -497,11 +497,17 @@ body[class*="fx-"] .brand { animation-delay: -.025s; }
 
 body.versus-stage .left-col,
 body.versus-stage .right-col { display: none !important; }
-body.versus-stage .app { grid-template-columns: minmax(0, 1fr); padding: 12px; justify-items: center; }
-body.versus-stage .stage { width: 100%; max-width: 660px; }
-body.versus-stage .board-wrap { width: 628px; max-width: 95vw; }
-body.versus-stage #game { width: 600px; max-width: calc(95vw - 28px); }
-body.versus-stage #game canvas { width: 100% !important; height: auto !important; }
+body.versus-stage .app { grid-template-columns: minmax(0, 1fr); padding: 8px 12px; justify-items: center; }
+body.versus-stage .stage { width: 100%; max-width: 520px; gap: 8px; }
+/* per-board frames live INSIDE the canvas — kill the outer .board-wrap chrome */
+body.versus-stage .board-wrap {
+  width: 480px; max-width: 95vw;
+  padding: 0; background: none; border: none; box-shadow: none;
+}
+body.versus-stage .board-wrap::before { content: none; }
+body.versus-stage #game { width: 100%; }
+body.versus-stage #game canvas { width: 100% !important; height: auto !important; display: block; }
+body.versus-stage .reactions { inset: 0; }
 .versus-hud {
   display: flex; justify-content: space-between; align-items: center; gap: 18px;
   font-family: "JetBrains Mono", monospace; font-size: 12px;

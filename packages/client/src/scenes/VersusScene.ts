@@ -19,14 +19,20 @@ interface VersusData {
   initialSnapshot: RoomStateSnapshot;
 }
 
-const MY_CELL = 30;
-const OPP_CELL = 15;
-const MY_X = 0;
-const MY_Y = 0;
-const OPP_X = 330;
-const OPP_Y = 0;
-const CANVAS_W = 600;
-const CANVAS_H = 600;
+const MY_CELL = 28;
+const OPP_CELL = 14;
+const FRAME_PAD = 8;
+const GUTTER = 22;
+const MY_W = COLS * MY_CELL;       // 280
+const MY_H = ROWS * MY_CELL;       // 560
+const OPP_W = COLS * OPP_CELL;     // 140
+const OPP_H = ROWS * OPP_CELL;     // 280
+const MY_X = FRAME_PAD;
+const MY_Y = FRAME_PAD;
+const OPP_X = MY_X + MY_W + GUTTER;
+const OPP_Y = MY_Y + Math.floor((MY_H - OPP_H) / 2);
+const CANVAS_W = OPP_X + OPP_W + FRAME_PAD;     // 280 + 22 + 140 + 16 = ~474
+const CANVAS_H = MY_H + FRAME_PAD * 2;          // 576
 
 export class VersusScene extends Phaser.Scene {
   private roomClient!: RoomClient;
@@ -126,9 +132,29 @@ export class VersusScene extends Phaser.Scene {
     this.gfx.clear();
     const me = this.findMe();
     const opp = this.findOpp();
+    this.drawFrame(MY_X, MY_Y, MY_W, MY_H, /*hot*/ true);
+    this.drawFrame(OPP_X, OPP_Y, OPP_W, OPP_H, /*hot*/ false);
     this.drawBoard(MY_X, MY_Y, MY_CELL, me, /*ghost*/ true);
     this.drawBoard(OPP_X, OPP_Y, OPP_CELL, opp, /*ghost*/ false);
     this.updateHud();
+  }
+
+  /** Rounded panel frame around a board area — drawn inside the Phaser canvas
+   *  so it scales with the renderer instead of relying on outer CSS chrome. */
+  private drawFrame(x: number, y: number, w: number, h: number, hot: boolean): void {
+    const radius = 10;
+    // soft inner background tint
+    this.gfx.fillStyle(0x07001a, 1);
+    this.gfx.fillRoundedRect(x, y, w, h, radius);
+    // halo: 3 progressively wider strokes for a faux glow
+    const haloColor = hot ? 0xff2e93 : 0x29e4ff;
+    for (let i = 3; i >= 1; i--) {
+      this.gfx.lineStyle(i * 2, haloColor, 0.05 * i);
+      this.gfx.strokeRoundedRect(x - i, y - i, w + i * 2, h + i * 2, radius + i);
+    }
+    // crisp 1px outline
+    this.gfx.lineStyle(1.2, 0xffffff, 0.35);
+    this.gfx.strokeRoundedRect(x, y, w, h, radius);
   }
 
   private drawBoard(
