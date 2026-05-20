@@ -11,6 +11,7 @@ import { setStatus } from '../ui/hud.ts';
 import { Sfx } from '../audio/sfx.ts';
 import { loadMuted } from '../persistence/store.ts';
 import { fxTier } from '@tetrizz/shared';
+import { mountTouchControls } from '../ui/touch.ts';
 
 interface VersusData {
   roomClient: RoomClient;
@@ -79,6 +80,12 @@ export class VersusScene extends Phaser.Scene {
       onStart: () => { /* nothing — versus is server-driven */ },
     };
     this.unbindInput = bindInput(bindings);
+
+    const touchMount = document.getElementById('touch-controls-mount');
+    if (touchMount) {
+      touchMount.innerHTML = '';
+      touchMount.appendChild(mountTouchControls(bindings));
+    }
 
     this.renderAll();
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.teardown());
@@ -281,9 +288,17 @@ export class VersusScene extends Phaser.Scene {
 
   private onServerLeave(): void {
     if (this.snapshot.phase === 'finished') return;
+    // Reaching this handler means the WS dropped mid-match. Most common causes:
+    // mobile browser backgrounding the tab (screen lock, app switch) pauses JS
+    // and the keep-alive ping lapses; or the network briefly dropped. The server
+    // gives 30s to reconnect, but our client doesn't auto-reconnect yet — so
+    // surface that to the player rather than pretending the server crashed.
+    const phaseHint = this.snapshot.phase === 'playing'
+      ? 'mid-match disconnect — likely the tab went to sleep or wifi blinked.'
+      : 'connection dropped before the match started.';
     showOverlay({
       title: 'CONNECTION LOST',
-      subHtml: 'server dipped on you.',
+      subHtml: `${phaseHint}<br>your opp gets the W by default.`,
       btnText: 'BACK TO MENU',
       showHandleInput: false,
     });
@@ -298,6 +313,8 @@ export class VersusScene extends Phaser.Scene {
     this.unbindInput?.();
     this.hudEl?.remove();
     this.hudEl = null;
+    const touchMount = document.getElementById('touch-controls-mount');
+    if (touchMount) touchMount.innerHTML = '';
     document.body.classList.remove('versus-stage');
     this.scale.resize(300, 600);
     this.roomClient.leave();

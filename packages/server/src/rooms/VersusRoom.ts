@@ -83,6 +83,7 @@ export class VersusRoom extends Room {
       pendingLockEvent: null,
     };
     this.players.push(slot);
+    console.log(`[versus] join session=${client.sessionId} handle=${handle} players=${this.players.length}/2`);
     this.broadcastSnapshot();
     if (this.players.length === 2 && this.phase === 'waiting') {
       this.startCountdown();
@@ -92,6 +93,10 @@ export class VersusRoom extends Room {
   override async onLeave(client: Client, consented: boolean): Promise<void> {
     const slot = this.findSlot(client.sessionId);
     if (!slot) return;
+    console.log(
+      `[versus] leave session=${client.sessionId} handle=${slot.state.handle} ` +
+      `phase=${this.phase} consented=${consented}`,
+    );
 
     if (this.phase === 'waiting') {
       // Pre-match: just drop the player; room stays open for the next joiner.
@@ -109,11 +114,13 @@ export class VersusRoom extends Room {
     this.broadcastSnapshot();
     try {
       const reconnected = await this.allowReconnection(client, RECONNECT_SECONDS);
+      console.log(`[versus] reconnect handle=${slot.state.handle} session=${reconnected.sessionId}`);
       slot.sessionId = reconnected.sessionId;
       slot.state.sessionId = reconnected.sessionId;
       slot.state.disconnected = false;
       this.broadcastSnapshot();
     } catch {
+      console.log(`[versus] forfeit-on-timeout handle=${slot.state.handle}`);
       this.forfeit(slot);
     }
   }
