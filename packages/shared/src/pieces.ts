@@ -61,13 +61,13 @@ export interface PieceMeta {
 }
 
 export const META: Readonly<Record<PieceType, PieceMeta>> = {
-  I: { name: 'SIGMA',   color: '#29e4ff', glow: 'rgba(41,228,255,.65)' },
-  O: { name: 'GYATT',   color: '#ffd400', glow: 'rgba(255,212,0,.65)'  },
-  T: { name: 'RIZZ',    color: '#b66bff', glow: 'rgba(182,107,255,.7)' },
-  S: { name: 'SUS',     color: '#c8ff3a', glow: 'rgba(200,255,58,.65)' },
-  Z: { name: 'SKIBIDI', color: '#ff4d4d', glow: 'rgba(255,77,77,.7)'   },
-  J: { name: 'OHIO',    color: '#5b8cff', glow: 'rgba(91,140,255,.7)'  },
-  L: { name: 'GLIZZY',  color: '#ff8a3d', glow: 'rgba(255,138,61,.7)'  },
+  I: { name: 'SIGMA',  color: '#29e4ff', glow: 'rgba(41,228,255,.65)' },
+  O: { name: 'GYATT',  color: '#ffd400', glow: 'rgba(255,212,0,.65)'  },
+  T: { name: 'DIDDY',  color: '#b66bff', glow: 'rgba(182,107,255,.7)' },
+  S: { name: 'BUSSIN', color: '#c8ff3a', glow: 'rgba(200,255,58,.65)' },
+  Z: { name: 'MOGGED', color: '#ff4d4d', glow: 'rgba(255,77,77,.7)'   },
+  J: { name: 'FANUM',  color: '#5b8cff', glow: 'rgba(91,140,255,.7)'  },
+  L: { name: 'HUZZ',   color: '#ff8a3d', glow: 'rgba(255,138,61,.7)'  },
 };
 
 export function shapeAt(type: PieceType, rot: Rotation): ShapeMatrix {
