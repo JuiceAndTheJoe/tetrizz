@@ -13,8 +13,8 @@ const game = new Phaser.Game({
   backgroundColor: '#07001a',
   transparent: false,
   scale: {
-    mode: Phaser.Scale.NONE,
-    autoCenter: Phaser.Scale.NO_CENTER,
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_HORIZONTALLY,
   },
   scene: [BootScene, GameScene],
   render: {

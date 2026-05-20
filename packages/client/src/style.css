@@ -223,12 +223,16 @@ body.fx-3 .bg-glow {
   position: relative;
   width: 300px;
   height: 600px;
+  max-width: 100%;
+  aspect-ratio: 1 / 2;
   border-radius: 14px;
   overflow: hidden;
 }
 #game canvas {
   display: block;
   border-radius: 14px;
+  width: 100% !important;
+  height: 100% !important;
 }
 
 /* floating meme reactions — DOM-based so they can overflow the canvas */
@@ -395,7 +399,144 @@ body[class*="fx-"] .brand { animation-delay: -.025s; }
 .mute-btn:hover { background: rgba(255,255,255,.12); }
 .mute-btn.muted { opacity: .55; }
 
+/* ---------- leaderboard ---------- */
+.lb {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 60px;
+}
+.lb-empty {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  letter-spacing: .12em;
+  color: var(--ink-3);
+  padding: 6px 0;
+}
+.lb-row {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  gap: 10px;
+  align-items: baseline;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(255,255,255,.05);
+}
+.lb-row:last-child { border-bottom: none; }
+.lb-rank {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  color: var(--ink-3);
+  text-align: right;
+}
+.lb-row.rank-1 .lb-rank { color: var(--yel); text-shadow: 0 0 8px rgba(255,212,0,.5); }
+.lb-row.rank-2 .lb-rank { color: #c9c9c9; }
+.lb-row.rank-3 .lb-rank { color: #cd7f32; }
+.lb-handle {
+  font-size: 13px;
+  color: var(--ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lb-row.rank-1 .lb-handle { color: var(--ink); font-weight: 600; }
+.lb-score {
+  font-family: "Anton", sans-serif;
+  font-size: 18px;
+  color: var(--hot-2);
+}
+.lb-row.rank-1 .lb-score { color: var(--yel); text-shadow: 0 0 10px rgba(255,212,0,.5); }
+
+/* ---------- touch controls ---------- */
+.touch-controls {
+  display: none; /* shown only on coarse-pointer devices */
+  width: 100%;
+  max-width: 360px;
+  margin: 6px auto 0;
+  flex-direction: column;
+  gap: 8px;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.touch-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.touch-btn {
+  font-family: "Anton", sans-serif;
+  font-size: 22px;
+  letter-spacing: .04em;
+  color: #fff;
+  background: rgba(255, 255, 255, .07);
+  border: 1px solid var(--panel-bd);
+  border-radius: 14px;
+  padding: 14px 0;
+  cursor: pointer;
+  touch-action: none;
+  transition: background .08s ease, transform .08s ease;
+  text-shadow: 0 0 12px rgba(255, 46, 147, .35);
+  min-height: 56px;
+}
+.touch-btn.active {
+  background: linear-gradient(180deg, rgba(255, 46, 147, .5), rgba(184, 0, 95, .4));
+  transform: translateY(1px);
+}
+.touch-btn.cw, .touch-btn.ccw { font-size: 26px; }
+.touch-btn.hold { font-size: 14px; letter-spacing: .2em; }
+.touch-btn.soft { font-size: 26px; }
+.touch-btn.drop {
+  width: 100%;
+  font-size: 22px;
+  letter-spacing: .12em;
+  background: linear-gradient(180deg, #ff2e93, #b8005f);
+  border: 1px solid rgba(255, 255, 255, .18);
+  box-shadow: 0 8px 24px rgba(255, 46, 147, .35);
+  padding: 16px 0;
+}
+@media (pointer: coarse) {
+  .touch-controls { display: flex; }
+}
+
+/* ---------- responsive ---------- */
+/* Tablet / narrow desktop: drop right column under the stage, keep left column visible. */
 @media (max-width: 1100px) {
-  .app { grid-template-columns: 1fr; height: auto; overflow: auto; }
-  body { overflow: auto; }
+  html, body { overflow: auto; }
+  .app {
+    grid-template-columns: 280px minmax(0, 1fr);
+    height: auto;
+    padding: 16px 18px;
+  }
+  .right-col { grid-column: 1 / -1; display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 14px; }
+}
+
+/* Mobile: one column, smaller wordmark, board fits the viewport width, panels stack. */
+@media (max-width: 740px) {
+  .app {
+    grid-template-columns: 1fr;
+    padding: 12px;
+    gap: 12px;
+    max-width: 100%;
+  }
+  .left-col, .right-col { display: flex !important; flex-direction: column; gap: 12px; }
+  .wordmark { font-size: 48px; }
+  .brand { padding: 14px 14px 12px; }
+  .panel { padding: 12px; border-radius: 14px; }
+  .stat-row .v { font-size: 22px; }
+  .keys { font-size: 11px; }
+  .stage { order: -1; gap: 10px; }
+  .topline { font-size: 10px; }
+  .board-wrap { padding: 10px; border-radius: 18px; }
+  #game {
+    /* honor min(420px, viewport - chrome) and keep the 1:2 board ratio */
+    width: min(300px, calc(100vw - 56px));
+  }
+  .overlay h2 { font-size: 42px; }
+  .overlay { padding: 18px; }
+  .mute-btn { top: 10px; right: 10px; width: 36px; height: 36px; font-size: 14px; }
+  .reaction.big { font-size: 40px; }
+  .reaction.huge { font-size: 54px; }
+  .footer { font-size: 9px; }
+  /* light shake on mobile — saves battery and reduces motion sickness on small screens */
+  body.fx-3 .panel, body.fx-3 .brand { animation-duration: .14s !important; }
 }

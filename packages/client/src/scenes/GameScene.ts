@@ -18,6 +18,8 @@ import { pushChat, seedChat } from '../ui/chat.ts';
 import { flash, type ReactionKind, type ReactionSize } from '../ui/reactions.ts';
 import { setHandle, setHold, setNext, setScoreboard, setStatus } from '../ui/hud.ts';
 import { getOverlay, hideOverlay, showOverlay } from '../ui/overlay.ts';
+import { mountTouchControls } from '../ui/touch.ts';
+import { fetchLeaderboard, submitScore } from '../ui/leaderboard.ts';
 
 const CELL = 30;
 const BOARD_X = 0;
@@ -80,7 +82,7 @@ export class GameScene extends Phaser.Scene {
 
     this.setupOverlay();
     this.setupMuteButton();
-    this.unbindInput = bindInput({
+    const bindings = {
       onMoveLeft: () => this.handleInput((s) => inputMove(s, -1)),
       onMoveRight: () => this.handleInput((s) => inputMove(s, 1)),
       onSoftDrop: () => this.handleStepInput((s) => inputSoftDrop(s)),
@@ -92,9 +94,16 @@ export class GameScene extends Phaser.Scene {
       onReset: () => this.startGame(),
       onMuteToggle: () => this.toggleMute(),
       onStart: () => { if (!this.running) this.startFromOverlay(); },
-    });
+    };
+    this.unbindInput = bindInput(bindings);
+
+    const touchMount = document.getElementById('touch-controls-mount');
+    if (touchMount && touchMount.childElementCount === 0) {
+      touchMount.appendChild(mountTouchControls(bindings));
+    }
 
     seedChat(3);
+    void fetchLeaderboard();
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.unbindInput?.());
   }
@@ -365,6 +374,17 @@ export class GameScene extends Phaser.Scene {
     const isNewBest = this.sessionStartBest > 0 && final > this.sessionStartBest;
     const tail = isNewBest ? "new BEST. ur him." : 'ratio. skill issue. try again.';
     setStatus('L taken · press to retry');
+
+    // Submit score if the player has a handle and actually scored something.
+    if (this.handle && final > 0) {
+      void submitScore({
+        handle: this.handle,
+        score: final,
+        lines: this.state.lines,
+        level: this.state.level,
+      });
+    }
+
     // Let the death reaction breathe before the overlay covers it (.reactions z:5 vs .overlay z:6).
     this.time.delayedCall(1100, () => {
       if (!this.dead) return; // user already restarted during the breath
