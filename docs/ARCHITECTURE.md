@@ -46,6 +46,10 @@ Built with esbuild (`build:server`) → `packages/server/dist/index.js`. esbuild
   to Colyseus; HTTP stays with Express.
 - `src/rooms/VersusRoom.ts` — **authoritative** 1v1 room, the heart of versus:
   - max 2 clients; `waiting → countdown → playing → finished`.
+  - **single-use room**: explicitly `lock()`s when the match starts so it's never
+    re-matchmade into, then `disconnect()`s ~5 s after `finished`. A rematch is a
+    fresh `joinOrCreate` from the lobby — without the lock, Colyseus auto-unlocks
+    on the first leave and re-queuing players land back in the dead room.
   - 30 Hz tick: drain each player's input queue, advance gravity, flush ripe
     garbage, KO check, then `broadcast('snapshot', RoomStateSnapshot)` with both
     players' full state every tick.

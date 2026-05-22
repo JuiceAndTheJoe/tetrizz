@@ -144,6 +144,15 @@ export class VersusRoom extends Room {
   // ---------- lifecycle ----------
 
   private startCountdown(): void {
+    // Sticky-lock the room for the rest of its life the instant a match begins.
+    // Colyseus auto-locks at maxClients but AUTO-UNLOCKS the moment a client
+    // leaves — so when a player clicks "back to menu" after the match and
+    // re-queues, matchmaking would route them straight back into this finished,
+    // about-to-`disconnect()` room (→ "connection lost" on the rematch). An
+    // explicit lock() (no args) sets _lockedExplicitly, which is never
+    // auto-unlocked on leave, keeping this room out of matchmaking permanently.
+    // Reconnection tokens bypass the lock, so allowReconnection still works.
+    void this.lock();
     this.phase = 'countdown';
     this.startsAtTick = this.tickCounter + COUNTDOWN_TICKS;
     for (const p of this.players) {
