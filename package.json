@@ -9,6 +9,8 @@
   ],
   "scripts": {
     "dev": "npm --workspace @tetrizz/client run dev",
+    "build:server": "npm --workspace @tetrizz/server run build",
+    "dev:server": "npm run build:server && node server.js",
     "build": "npm --workspace @tetrizz/shared run build && npm --workspace @tetrizz/server run build && npm --workspace @tetrizz/client run build",
     "preview": "npm --workspace @tetrizz/client run preview",
     "typecheck": "npm --workspaces --if-present run typecheck",
