@@ -1,9 +1,9 @@
 import Phaser from 'phaser';
 import {
   createGame, fxTier, inputHardDrop, inputHold, inputMove, inputRotate,
-  inputSoftDrop, META, SHAPES, tickGravity,
+  inputSoftDrop, META, SHAPES, tickGravity, cellColor,
   COLS, ROWS,
-  type GameState, type LockEvent, type Piece, type PieceType,
+  type GameState, type LockEvent, type Piece,
 } from '@tetrizz/shared';
 import { Sfx, exposeTuneHelpers } from '../audio/sfx.ts';
 import { bindInput } from '../input.ts';
@@ -237,7 +237,7 @@ export class GameScene extends Phaser.Scene {
       for (let c = 0; c < COLS; c++) {
         const v = this.state.grid[r][c];
         if (v === 0) continue;
-        this.drawCell(this.boardGfx, c, r, META[v as PieceType].color, false);
+        this.drawCell(this.boardGfx, c, r, cellColor(v), false);
       }
     }
 

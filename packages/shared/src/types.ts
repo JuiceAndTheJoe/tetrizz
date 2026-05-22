@@ -1,7 +1,12 @@
 export type PieceType = 'I' | 'O' | 'T' | 'S' | 'Z' | 'J' | 'L';
 
-/** A cell on the board: 0 = empty, or the letter of the piece that occupied it. */
-export type CellValue = 0 | PieceType;
+/** Received garbage cells. Distinct from any PieceType so they render neutral gray
+ *  instead of borrowing a real piece's color (they used to masquerade as 'L'). */
+export type GarbageCell = 'G';
+
+/** A cell on the board: 0 = empty, the letter of the piece that occupied it,
+ *  or 'G' for garbage dumped by an opponent. */
+export type CellValue = 0 | PieceType | GarbageCell;
 
 export type Grid = CellValue[][];
 

@@ -1,4 +1,4 @@
-import type { PieceType, Rotation } from './types.ts';
+import type { CellValue, PieceType, Rotation } from './types.ts';
 
 type ShapeMatrix = readonly (readonly number[])[];
 type ShapeSet = readonly [ShapeMatrix, ShapeMatrix, ShapeMatrix, ShapeMatrix];
@@ -72,4 +72,14 @@ export const META: Readonly<Record<PieceType, PieceMeta>> = {
 
 export function shapeAt(type: PieceType, rot: Rotation): ShapeMatrix {
   return SHAPES[type][rot];
+}
+
+/** Fill color for received garbage cells — neutral cool gray so junk reads as inert,
+ *  not as a misplaced 'L' piece. */
+export const GARBAGE_COLOR = '#6b7280';
+
+/** Resolve a non-empty cell value to its fill color. Garbage ('G') is gray;
+ *  everything else is the piece's brand color. */
+export function cellColor(value: Exclude<CellValue, 0>): string {
+  return value === 'G' ? GARBAGE_COLOR : META[value].color;
 }

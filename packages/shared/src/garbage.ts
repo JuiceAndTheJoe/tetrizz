@@ -33,8 +33,8 @@ export function computeAttack(ev: LockEvent, isB2B: boolean): number {
 
 /**
  * Push `rows` garbage lines onto the BOTTOM of the grid, shifting existing
- * content up. Each row is a solid row of 'L' cells except the column at
- * holeCols[i], which is empty. If shifting pushes filled cells above row 0,
+ * content up. Each row is a solid row of 'G' (garbage) cells except the column
+ * at holeCols[i], which is empty. If shifting pushes filled cells above row 0,
  * the returned state.status is 'dead' (top-out by garbage).
  *
  * Pure: returns a new state. `holeCols.length` must equal `rows`.
@@ -65,7 +65,7 @@ export function applyGarbage(state: GameState, rows: number, holeCols: number[])
   // Append `rows` garbage rows at the bottom.
   for (let i = 0; i < rows; i++) {
     const hole = clampCol(holeCols[i] ?? 0);
-    const row: CellValue[] = new Array(COLS).fill('L');
+    const row: CellValue[] = new Array(COLS).fill('G');
     row[hole] = 0;
     out.push(row);
   }
