@@ -527,22 +527,28 @@ body.versus-stage .stage {
 body.versus-stage .topline { max-width: 520px; }
 body.versus-stage .versus-hud { width: 100%; max-width: 860px; padding: 4px 12px; }
 /* per-board frames live INSIDE the canvas — kill the outer .board-wrap chrome.
-   flex:1 hands the board all the height left after the HUD/topline. */
+   Full-width containers (definite size) center the canvas; flex:1 hands the board
+   all the height left after the HUD/topline. width:auto here would shrink-wrap
+   under the flex column and clip the canvas, so keep it 100%. */
 body.versus-stage .board-wrap {
-  flex: 1 1 auto; min-height: 0; width: auto; max-width: 96vw;
+  flex: 1 1 auto; min-height: 0; width: 100%; max-width: none;
   display: flex; align-items: center; justify-content: center;
-  padding: 0; background: none; border: none; box-shadow: none;
+  padding: 0; background: none; border: none; box-shadow: none; overflow: visible;
 }
 body.versus-stage .board-wrap::before { content: none; }
 /* Size the board by height; width:auto lets the canvas keep its own 582:576
    aspect so cells stay square. The height cap keeps width within 96vw on narrow
    screens (canvas width = height * 582/576). */
 body.versus-stage #game {
+  width: 100%;
   height: min(100%, calc(96vw * 576 / 582));
   display: flex; align-items: center; justify-content: center;
 }
 body.versus-stage #game canvas {
   height: 100% !important; width: auto !important;
+  /* kill Phaser's autoCenter inline margin so flexbox (not Phaser) centers it —
+     otherwise the two compound and shove the board to the right */
+  margin: 0 !important;
   display: block; border-radius: 10px;
 }
 body.versus-stage .reactions { inset: 0; }
