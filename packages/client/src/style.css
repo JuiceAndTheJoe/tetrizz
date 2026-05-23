@@ -534,13 +534,15 @@ body.versus-stage .board-wrap {
   padding: 0; background: none; border: none; box-shadow: none;
 }
 body.versus-stage .board-wrap::before { content: none; }
+/* Size the board by height; width:auto lets the canvas keep its own 582:576
+   aspect so cells stay square. The height cap keeps width within 96vw on narrow
+   screens (canvas width = height * 582/576). */
 body.versus-stage #game {
   height: min(100%, calc(96vw * 576 / 582));
-  aspect-ratio: 582 / 576;
   display: flex; align-items: center; justify-content: center;
 }
 body.versus-stage #game canvas {
-  width: 100% !important; height: 100% !important;
+  height: 100% !important; width: auto !important;
   display: block; border-radius: 10px;
 }
 body.versus-stage .reactions { inset: 0; }
