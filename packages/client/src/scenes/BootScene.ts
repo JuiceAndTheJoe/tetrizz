@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { SFX_FILES, type SfxKey } from '../audio/sfx.ts';
+import { SFX_FILES, MUSIC_FILES, type SfxKey, type MusicKey } from '../audio/sfx.ts';
 
 /**
  * Loads audio + waits for web fonts before starting the main game.
@@ -12,6 +12,9 @@ export class BootScene extends Phaser.Scene {
   preload(): void {
     for (const [key, path] of Object.entries(SFX_FILES)) {
       this.load.audio(key as SfxKey, path);
+    }
+    for (const [key, path] of Object.entries(MUSIC_FILES)) {
+      this.load.audio(key as MusicKey, path);
     }
   }
 
