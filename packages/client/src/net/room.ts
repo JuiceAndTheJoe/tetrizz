@@ -19,6 +19,10 @@ export class RoomClient {
   private listener: RoomListener | null = null;
   private onLeaveCb: (() => void) | null = null;
   private lastSnapshot: RoomStateSnapshot | null = null;
+  /** Captured after join; lets us resume the same session within the server's grace window. */
+  private reconnectionToken: string | null = null;
+  /** True once we deliberately left — suppresses the onLeave reconnect path. */
+  private intentional = false;
 
   constructor() {
     this.client = new Client(defaultEndpoint());
@@ -33,8 +37,27 @@ export class RoomClient {
   }
 
   async join(handle: string): Promise<void> {
+    this.intentional = false;
     this.room = await this.client.joinOrCreate<unknown>('versus', { handle });
-    const room = this.room;
+    this.wireRoom(this.room);
+  }
+
+  /** Re-establish the dropped session using the reconnection token. Returns false
+   *  if there's no token or the server already expired the grace window. */
+  async reconnect(): Promise<boolean> {
+    if (!this.reconnectionToken) return false;
+    try {
+      this.room = await this.client.reconnect<unknown>(this.reconnectionToken);
+      this.intentional = false;
+      this.wireRoom(this.room);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private wireRoom(room: Room): void {
+    this.reconnectionToken = room.reconnectionToken ?? null;
     room.onMessage('snapshot', (snap: RoomStateSnapshot) => {
       this.lastSnapshot = snap;
       this.listener?.(snap, room.sessionId);
@@ -43,6 +66,8 @@ export class RoomClient {
       room.send('pong', {});
     });
     room.onLeave(() => {
+      // A deliberate leave() shouldn't kick off the scene's reconnect/disconnect UI.
+      if (this.intentional) return;
       this.onLeaveCb?.();
     });
   }
@@ -60,6 +85,7 @@ export class RoomClient {
   }
 
   leave(): void {
+    this.intentional = true;
     try { this.room?.leave(); } catch { /* ignore */ }
     this.room = null;
     this.lastSnapshot = null;
