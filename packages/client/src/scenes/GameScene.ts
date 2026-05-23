@@ -7,7 +7,7 @@ import {
 } from '@tetrizz/shared';
 import { Sfx, exposeTuneHelpers } from '../audio/sfx.ts';
 import { bindInput } from '../input.ts';
-import { loadBest, loadHandle, loadMuted, normalizeHandle, saveBest, saveHandle } from '../persistence/store.ts';
+import { loadBest, loadHandle, normalizeHandle, saveBest, saveHandle } from '../persistence/store.ts';
 import { setBgTier } from '../fx/bgglow.ts';
 import { CameraShake } from '../fx/shake.ts';
 import { EmberEmitter } from '../fx/embers.ts';
@@ -19,6 +19,7 @@ import { flash, type ReactionKind, type ReactionSize } from '../ui/reactions.ts'
 import { setHandle, setHold, setNext, setScoreboard, setStatus } from '../ui/hud.ts';
 import { getOverlay, hideOverlay, showOverlay } from '../ui/overlay.ts';
 import { mountTouchControls } from '../ui/touch.ts';
+import { setActiveSfx, syncAudioUI } from '../ui/audioControls.ts';
 import { fetchLeaderboard, submitScore } from '../ui/leaderboard.ts';
 
 const CELL = 30;
@@ -74,6 +75,7 @@ export class GameScene extends Phaser.Scene {
     this.shake = new CameraShake(this.cameras.main);
 
     this.sfx = new Sfx(this.sound);
+    setActiveSfx(this.sfx);
     exposeTuneHelpers();
 
     this.best = loadBest();
@@ -87,7 +89,6 @@ export class GameScene extends Phaser.Scene {
     this.hudFromState();
 
     this.setupOverlay();
-    this.setupMuteButton();
     const bindings = {
       onMoveLeft: () => this.handleInput((s) => inputMove(s, -1)),
       onMoveRight: () => this.handleInput((s) => inputMove(s, 1)),
@@ -432,25 +433,8 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  private setupMuteButton(): void {
-    const btn = document.getElementById('mute-btn');
-    if (!(btn instanceof HTMLButtonElement)) return;
-    const sync = () => {
-      btn.textContent = this.sfx.isMuted ? '🔇' : '🔊';
-      btn.classList.toggle('muted', this.sfx.isMuted);
-    };
-    if (loadMuted()) this.sfx.setMuted(true);
-    sync();
-    btn.addEventListener('click', () => {
-      this.sfx.toggleMute();
-      sync();
-    });
-    // expose for hotkey
-    (this as unknown as { _syncMute: () => void })._syncMute = sync;
-  }
-
   private toggleMute(): void {
     this.sfx.toggleMute();
-    (this as unknown as { _syncMute?: () => void })._syncMute?.();
+    syncAudioUI();
   }
 }

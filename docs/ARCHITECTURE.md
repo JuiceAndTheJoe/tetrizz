@@ -97,15 +97,19 @@ Built with esbuild (`build:server`) → `packages/server/dist/index.js`. esbuild
 - `src/input.ts` — keyboard bindings + DAS/ARR key repeat; shared by both play scenes.
 - `src/ui/` — `overlay`, `hud`, `chat`, `leaderboard`, `reactions`, `phrases`,
   `touch` (mobile on-screen controls), `mogTakeover` (versus game-over DOM/CSS
-  overlay: mogface fade-in + TV-static flash).
+  overlay: mogface fade-in + TV-static flash), `audioControls` (top-right dock:
+  mute speaker + Music/SFX volume sliders; shared across scenes via `setActiveSfx`).
 - `src/audio/sfx.ts` — `Sfx`: one-shot SFX (clears, streak loss, charlie
   high-score sting) **and** background music. Music is a gapless **intro → looping
   loop** scheduled on raw WebAudio (sample-accurate `start(when)`) routed through
   Phaser's master node so mute/volume apply; `startMusic`/`stopMusic`, charlie
   ducks the loop to silence while it plays, and `playMog` is the versus game-over
-  sting. `MUSIC_FILES`/`SFX_FILES` are both preloaded by `BootScene`.
+  sting. Separate user volumes: **SFX** scales every one-shot; **music** scales the
+  loop against a hard 50% cap (`setSfxVolume`/`setMusicVolume`). `MUSIC_FILES`/
+  `SFX_FILES` are both preloaded by `BootScene`.
 - `src/fx/` — `bgglow`, `embers`, `flames`, `shake`, `textures` (visual juice).
-- `src/persistence/store.ts` — `localStorage`: best score, handle, mute.
+- `src/persistence/store.ts` — `localStorage`: best score, handle, mute, sfx +
+  music volume.
 - `src/style.css` — all styling. `body.versus-stage …` rules re-scope the layout
   and overlay for the wide/short versus arena (vs. the tall solo board).
 

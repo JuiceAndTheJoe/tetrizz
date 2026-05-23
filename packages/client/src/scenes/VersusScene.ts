@@ -20,6 +20,7 @@ import { ensureTextures } from '../fx/textures.ts';
 import { CLEAR_PHRASES, STREAK_LOSS_MSGS, pickRandom } from '../ui/phrases.ts';
 import { flash, type ReactionKind, type ReactionSize } from '../ui/reactions.ts';
 import { showMogTakeover, hideMogTakeover } from '../ui/mogTakeover.ts';
+import { setActiveSfx, syncAudioUI } from '../ui/audioControls.ts';
 
 interface VersusData {
   roomClient: RoomClient;
@@ -30,10 +31,10 @@ interface VersusData {
 const MY_CELL = 28;
 const OPP_CELL = 14;
 const FRAME_PAD = 8;
-const GUTTER = 22;
+const GUTTER = 56;
 // Left rail holding the Hold + Next mini boards.
 const SIDE_W = 64;
-const SIDE_GUTTER = 14;
+const SIDE_GUTTER = 26;
 const MINI_CELL = 13;
 const SIDE_BOX_H = 58;
 const SIDE_LABEL_H = 14;
@@ -44,11 +45,11 @@ const OPP_W = COLS * OPP_CELL;     // 140
 const OPP_H = ROWS * OPP_CELL;     // 280
 
 const SIDE_X = FRAME_PAD;
-const MY_X = SIDE_X + SIDE_W + SIDE_GUTTER;     // 86
+const MY_X = SIDE_X + SIDE_W + SIDE_GUTTER;     // 98
 const MY_Y = FRAME_PAD;
-const OPP_X = MY_X + MY_W + GUTTER;             // 388
+const OPP_X = MY_X + MY_W + GUTTER;             // 434
 const OPP_Y = MY_Y + Math.floor((MY_H - OPP_H) / 2);
-const CANVAS_W = OPP_X + OPP_W + FRAME_PAD;     // 536
+const CANVAS_W = OPP_X + OPP_W + FRAME_PAD;     // 582  (keep style.css aspect-ratio in sync)
 const CANVAS_H = MY_H + FRAME_PAD * 2;          // 576
 
 // Hold/Next box positions inside the left rail.
@@ -147,6 +148,7 @@ export class VersusScene extends Phaser.Scene {
 
     this.sfx = new Sfx(this.sound);
     if (loadMuted()) this.sfx.setMuted(true);
+    setActiveSfx(this.sfx);
 
     this.mountHud();
     this.roomClient.onLeave(() => this.onServerLeave());
@@ -162,7 +164,7 @@ export class VersusScene extends Phaser.Scene {
       onHold: () => this.send({ type: 'hold' }),
       onPauseToggle: () => { /* no pause in versus */ },
       onReset: () => { /* no reset in versus */ },
-      onMuteToggle: () => this.sfx.toggleMute(),
+      onMuteToggle: () => { this.sfx.toggleMute(); syncAudioUI(); },
       onStart: () => { /* nothing — versus is server-driven */ },
     };
     this.unbindInput = bindInput(bindings);

@@ -1,5 +1,8 @@
 import Phaser from 'phaser';
-import { loadMuted, saveMuted } from '../persistence/store.ts';
+import {
+  loadMuted, saveMuted,
+  loadSfxVolume, saveSfxVolume, loadMusicVolume, saveMusicVolume,
+} from '../persistence/store.ts';
 
 export type SfxKey = 'rizz' | 'bombo' | 'siren' | 'taco' | 'fahhh' | 'tuco' | 'charlie';
 
@@ -29,8 +32,9 @@ const SFX_OFFSET: Record<SfxKey, number> = {
   rizz: 1.10, bombo: 0, siren: 0, taco: 0, fahhh: 0, tuco: 0, charlie: 0,
 };
 
-/** Background-loop volume — sits under the SFX so clears/streak sounds cut through. */
-const MUSIC_VOL = 0.5;
+/** Hard ceiling on background-music gain: the music slider (0..1) scales against
+ *  this, so the loop can never exceed 50% no matter what the user picks. */
+const MUSIC_GAIN_CAP = 0.5;
 const MOG_VOL = 0.85;
 
 // charlie has a ~7s intro before the beat drops — hold the screen pulse until then
@@ -63,9 +67,15 @@ export class Sfx {
   private introSrc: AudioBufferSourceNode | null = null;
   private loopSrc: AudioBufferSourceNode | null = null;
   private musicPlaying = false;
+  private musicDucked = false;
   // HTML5-audio fallback (only when WebAudio is unavailable — rare)
   private fbIntro: Phaser.Sound.BaseSound | null = null;
   private fbLoop: Phaser.Sound.BaseSound | null = null;
+
+  // user-controlled volumes (0..1), persisted; sfx multiplies effect base
+  // volumes, music scales against MUSIC_GAIN_CAP.
+  private sfxVol = loadSfxVolume();
+  private musicVol = loadMusicVolume();
 
   constructor(sound: Phaser.Sound.BaseSoundManager) {
     this.sound = sound;
@@ -83,7 +93,7 @@ export class Sfx {
     }
     // Phaser WebAudio handles overlapping plays by default (each call creates a new playback instance).
     this.sound.play(key, {
-      volume: SFX_VOL[key],
+      volume: SFX_VOL[key] * this.sfxVol,
       seek: SFX_OFFSET[key],
     });
   }
@@ -93,7 +103,7 @@ export class Sfx {
       this.charlieSound = this.sound.add('charlie');
       const off = (): void => {
         document.body.classList.remove('beat-130');
-        // charlie's done trumping — bring the loop back up.
+        // charlie's done trumping — bring the loop back up (if not muted there).
         this.duckMusic(false);
         if (this.charlieBeatTimer !== null) {
           clearTimeout(this.charlieBeatTimer);
@@ -106,7 +116,7 @@ export class Sfx {
     // charlie trumps the background loop — drop it to silence while charlie sings.
     this.duckMusic(true);
     this.charlieSound.play({
-      volume: SFX_VOL.charlie,
+      volume: SFX_VOL.charlie * this.sfxVol,
       seek: SFX_OFFSET.charlie,
     });
     // wait out the song intro before kicking the pulse in
@@ -145,12 +155,13 @@ export class Sfx {
     this.stopMusic();
     this.musicPlaying = true;
 
+    this.musicDucked = false;
     const introBuf = this.buffer('intro');
     const loopBuf = this.buffer('loop');
     if (this.ctx && this.musicDest && introBuf && loopBuf) {
       if (this.ctx.state === 'suspended') void this.ctx.resume();
       const gain = this.ctx.createGain();
-      gain.gain.value = MUSIC_VOL;
+      gain.gain.value = this.musicTarget();
       gain.connect(this.musicDest);
       this.musicGain = gain;
 
@@ -173,9 +184,14 @@ export class Sfx {
     this.fbIntro.once('complete', () => {
       if (!this.musicPlaying) return;
       this.fbLoop = this.sound.add('loop');
-      this.fbLoop.play({ loop: true, volume: MUSIC_VOL });
+      this.fbLoop.play({ loop: true, volume: this.musicTarget() });
     });
-    this.fbIntro.play({ volume: MUSIC_VOL });
+    this.fbIntro.play({ volume: this.musicTarget() });
+  }
+
+  /** Effective music gain from the user's slider, hard-capped at 50%. */
+  private musicTarget(): number {
+    return this.musicVol * MUSIC_GAIN_CAP;
   }
 
   stopMusic(): void {
@@ -199,7 +215,8 @@ export class Sfx {
 
   /** Smoothly drop the loop to silence (charlie trumping) and back. */
   private duckMusic(on: boolean): void {
-    const target = on ? 0 : MUSIC_VOL;
+    this.musicDucked = on;
+    const target = on ? 0 : this.musicTarget();
     if (this.musicGain && this.ctx) {
       this.musicGain.gain.cancelScheduledValues(this.ctx.currentTime);
       this.musicGain.gain.setTargetAtTime(target, this.ctx.currentTime, 0.12);
@@ -213,7 +230,30 @@ export class Sfx {
   playMog(): void {
     this.stopMusic();
     if (this.sound.mute) return;
-    this.sound.play('mogsong', { volume: MOG_VOL });
+    this.sound.play('mogsong', { volume: MOG_VOL * this.sfxVol });
+  }
+
+  // ---------- volume controls ----------
+
+  getSfxVolume(): number { return this.sfxVol; }
+  getMusicVolume(): number { return this.musicVol; }
+
+  setSfxVolume(v: number): void {
+    this.sfxVol = Math.min(1, Math.max(0, v));
+    saveSfxVolume(this.sfxVol);
+  }
+
+  /** Live-updates the playing loop's gain (unless charlie is currently ducking it). */
+  setMusicVolume(v: number): void {
+    this.musicVol = Math.min(1, Math.max(0, v));
+    saveMusicVolume(this.musicVol);
+    if (this.musicDucked) return;
+    const target = this.musicTarget();
+    if (this.musicGain && this.ctx) {
+      this.musicGain.gain.cancelScheduledValues(this.ctx.currentTime);
+      this.musicGain.gain.setTargetAtTime(target, this.ctx.currentTime, 0.05);
+    }
+    (this.fbLoop as unknown as { setVolume?: (v: number) => void } | null)?.setVolume?.(target);
   }
 
   private buffer(key: MusicKey): AudioBuffer | null {
