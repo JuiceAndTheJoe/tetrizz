@@ -11,6 +11,7 @@ interface LobbyData {
 export class LobbyScene extends Phaser.Scene {
   private roomClient!: RoomClient;
   private leaveTimer?: number;
+  private handedOff = false;
 
   constructor() {
     super('Lobby');
@@ -39,6 +40,7 @@ export class LobbyScene extends Phaser.Scene {
   }
 
   private onSnapshot(snap: RoomStateSnapshot, mySessionId: string): void {
+    if (this.handedOff) return;
     if (snap.phase === 'waiting') {
       showOverlay({
         title: 'MATCHMAKING…',
@@ -48,18 +50,11 @@ export class LobbyScene extends Phaser.Scene {
       });
       return;
     }
-    if (snap.phase === 'countdown') {
-      const opp = snap.players.find((p) => p.sessionId !== mySessionId);
-      const oppHandle = opp?.handle ?? '@???';
-      showOverlay({
-        title: 'OPPONENT FOUND',
-        subHtml: `cooking against <b>${escapeHtml(oppHandle)}</b><br>get ready…`,
-        btnText: '—',
-        showHandleInput: false,
-      });
-      return;
-    }
-    if (snap.phase === 'playing') {
+    // Hand off to the Versus scene as soon as a match locks in — it renders the
+    // boards behind the 3-2-1 countdown itself. Falls back to a 'playing'
+    // snapshot if the one-shot 'countdown' broadcast was missed.
+    if (snap.phase === 'countdown' || snap.phase === 'playing') {
+      this.handedOff = true;
       hideOverlay();
       this.scene.start('Versus', { roomClient: this.roomClient, mySessionId, initialSnapshot: snap });
     }

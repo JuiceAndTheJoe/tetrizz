@@ -72,16 +72,26 @@ Built with esbuild (`build:server`) → `packages/server/dist/index.js`. esbuild
   - `GameScene.ts` — **solo** play: runs the `shared` simulation locally each frame.
     Layered Graphics: `gridGfx` (static, drawn once) + `boardGfx`/`ghostGfx`/`pieceGfx`
     (dynamic). Owns HUD wiring, FX, audio, best-score persistence + `/api/scores`.
-  - `LobbyScene.ts` — versus matchmaking / waiting room.
+  - `LobbyScene.ts` — versus matchmaking / waiting room. Hands off to `VersusScene`
+    as soon as the room hits `countdown` (or `playing`, if that snapshot was missed).
   - `VersusScene.ts` — **server-driven** 1v1 render. Connects via `RoomClient`,
     draws both boards from snapshots. Mirrors GameScene's layering: `staticGfx`
-    (frames + grid lines drawn once) + `dynGfx` (cells/pieces, redrawn only when a
-    snapshot arrives — coalesced to frame rate via a `dirty` flag in `update()`,
-    not in the WS callback). Cell colors are parsed once into a packed-int lookup.
-    Owns the versus HUD and the result overlay.
+    (frames + grid lines + Hold/Next rail boxes, drawn once) + `dynGfx` (cells,
+    pieces, Hold/Next contents, garbage telegraph — redrawn only when a snapshot
+    arrives, coalesced to frame rate via a `dirty` flag in `update()`, not in the
+    WS callback). Cell colors are parsed once into a packed-int lookup. Also owns:
+    the versus HUD; a left rail showing **my Hold + Next**; the **3-2-1 countdown**
+    (local timer seeded from `startsAtTick`, then `GO!` on the first `playing`
+    snapshot); a left-edge **incoming-garbage telegraph** (amber = cancelable,
+    pulsing red = past the cancel window); the full **clear FX/juice** reused from
+    solo (`fx/*` flames/embers/shake/bg-glow + `ui/reactions`), driven by my own
+    `lastLockEvent` tier; the result overlay with a **REMATCH** button (re-queues
+    via Lobby) + BACK TO MENU; and **client-side reconnect** on a mid-match drop.
 - `src/net/room.ts` — `RoomClient`: thin wrapper over `colyseus.js`. `join('versus')`,
-  snapshot listener, leave. **Endpoint:** `ws://localhost:8080` in dev, same-origin
-  in prod.
+  snapshot listener, leave, and `reconnect()` (resumes the same session via the
+  stored `reconnectionToken` within the server's grace window; a deliberate
+  `leave()` is flagged so it doesn't trip the scene's reconnect UI). **Endpoint:**
+  `ws://localhost:8080` in dev, same-origin in prod.
 - `src/input.ts` — keyboard bindings + DAS/ARR key repeat; shared by both play scenes.
 - `src/ui/` — `overlay`, `hud`, `chat`, `leaderboard`, `reactions`, `phrases`,
   `touch` (mobile on-screen controls).
