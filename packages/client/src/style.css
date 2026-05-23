@@ -742,4 +742,57 @@ body:has(.overlay.show) .touch-controls { opacity: 0; pointer-events: none; }
   .footer { font-size: 9px; }
   /* light shake on mobile — saves battery and reduces motion sickness on small screens */
   body.fx-3 .panel, body.fx-3 .brand { animation-duration: .14s !important; }
+  .mog-takeover img { width: min(82vmin, 420px); }
+}
+
+/* ---------- mog takeover (versus game over) ---------- */
+/* z-index 40 sits above the result overlay (z6) but below the mute button (z100);
+   pointer-events:none lets clicks fall through to the result card beneath. */
+.mog-takeover {
+  position: fixed; inset: 0; z-index: 40;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  opacity: 0; transition: opacity 0.8s ease;
+  pointer-events: none; overflow: hidden;
+}
+.mog-takeover.in { opacity: 1; }
+.mog-takeover.settled {
+  opacity: 0.2; background: transparent;
+  transition: opacity 0.7s ease, background 0.7s ease;
+}
+.mog-takeover img {
+  width: min(64vmin, 480px); height: auto; border-radius: 12px;
+  -webkit-user-drag: none; user-select: none;
+  filter: drop-shadow(0 0 50px rgba(255, 46, 147, 0.65)) drop-shadow(0 0 90px rgba(41, 228, 255, 0.35));
+}
+.mog-takeover.flashing img { animation: mog-jolt 0.18s steps(2) 6; }
+.mog-static {
+  position: absolute; inset: 0; pointer-events: none;
+  opacity: 0; mix-blend-mode: screen; background-size: 220px 220px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.mog-takeover.flashing .mog-static {
+  animation: tv-static 0.12s steps(3) infinite, tv-flicker 0.9s steps(1) infinite;
+}
+@keyframes tv-static {
+  0% { background-position: 0 0; }
+  100% { background-position: 180px 120px; }
+}
+@keyframes tv-flicker {
+  0%, 100% { opacity: 0.18; }
+  20% { opacity: 0.7; }
+  40% { opacity: 0.25; }
+  60% { opacity: 0.85; }
+  80% { opacity: 0.4; }
+}
+@keyframes mog-jolt {
+  0% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(-6px, 3px) scale(1.02); }
+  50% { transform: translate(5px, -4px) scale(0.99); }
+  75% { transform: translate(-3px, -2px) scale(1.01); }
+  100% { transform: translate(0, 0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mog-takeover.flashing img { animation: none; }
+  .mog-takeover.flashing .mog-static { animation: tv-flicker 0.9s steps(1) infinite; }
 }

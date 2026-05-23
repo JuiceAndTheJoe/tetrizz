@@ -111,7 +111,10 @@ export class GameScene extends Phaser.Scene {
     seedChat(3);
     void fetchLeaderboard();
 
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.unbindInput?.());
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.unbindInput?.();
+      this.sfx.stopMusic();
+    });
 
     if (this.autoStartRequested) this.startGame();
   }
@@ -341,6 +344,7 @@ export class GameScene extends Phaser.Scene {
     setStatus('cooking…');
     this.hudFromState();
     this.renderAll();
+    this.sfx.startMusic();
   }
 
   private startFromOverlay(): void {
@@ -382,6 +386,7 @@ export class GameScene extends Phaser.Scene {
     this.running = false;
     this.dead = true;
     this.applyTier(0);
+    this.sfx.stopMusic();
     flash('YOU GOT THE ICK 💀', 'hot', -8, 'big');
     const final = this.state.score;
     const isNewBest = this.sessionStartBest > 0 && final > this.sessionStartBest;

@@ -19,6 +19,7 @@ import { FlameEmitter } from '../fx/flames.ts';
 import { ensureTextures } from '../fx/textures.ts';
 import { CLEAR_PHRASES, STREAK_LOSS_MSGS, pickRandom } from '../ui/phrases.ts';
 import { flash, type ReactionKind, type ReactionSize } from '../ui/reactions.ts';
+import { showMogTakeover, hideMogTakeover } from '../ui/mogTakeover.ts';
 
 interface VersusData {
   roomClient: RoomClient;
@@ -98,6 +99,8 @@ export class VersusScene extends Phaser.Scene {
   /** Set when we navigate away on purpose — stops the disconnect/reconnect UI. */
   private leaving = false;
   private reconnecting = false;
+  private musicStarted = false;
+  private matchOverDone = false;
 
   constructor() {
     super('Versus');
@@ -107,8 +110,15 @@ export class VersusScene extends Phaser.Scene {
     this.roomClient = data.roomClient;
     this.mySessionId = data.mySessionId;
     this.snapshot = data.initialSnapshot;
+    // Phaser reuses the scene instance across matches — reset all per-match state.
     this.leaving = false;
     this.reconnecting = false;
+    this.musicStarted = false;
+    this.matchOverDone = false;
+    this.currentFxTier = 0;
+    this.prevTier = 0;
+    this.dirty = false;
+    this.prevLockTicks.clear();
   }
 
   create(): void {
@@ -166,6 +176,8 @@ export class VersusScene extends Phaser.Scene {
     this.drawDynamic();
     this.updateHud();
     if (this.snapshot.phase === 'countdown') this.startCountdownDisplay(this.snapshot);
+    else if (this.snapshot.phase === 'playing') this.startMusicOnce();
+    else if (this.snapshot.phase === 'finished') this.onMatchOver(this.snapshot);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.teardown());
   }
 
@@ -189,7 +201,7 @@ export class VersusScene extends Phaser.Scene {
     if (me && me.gameState.status === 'dead' && this.currentFxTier !== 0) this.applyTier(0);
     if (snap.phase === 'finished') {
       this.applyTier(0);
-      this.showResult(snap);
+      this.onMatchOver(snap);
     }
   }
 
@@ -222,6 +234,13 @@ export class VersusScene extends Phaser.Scene {
     this.countdownTimer = undefined;
     this.popCountdown('GO!');
     this.time.delayedCall(550, () => this.countdownText.setVisible(false));
+    this.startMusicOnce();
+  }
+
+  private startMusicOnce(): void {
+    if (this.musicStarted) return;
+    this.musicStarted = true;
+    this.sfx.startMusic();
   }
 
   private popCountdown(text: string): void {
@@ -550,6 +569,18 @@ export class VersusScene extends Phaser.Scene {
 
   // ---------- end ----------
 
+  /** Versus game-over: every client plays the mog song, mogface fades in and
+   *  flashes TV static, then the result card slides in once the drama lands. */
+  private onMatchOver(snap: RoomStateSnapshot): void {
+    if (this.matchOverDone) return;
+    this.matchOverDone = true;
+    this.sfx.playMog(); // stops the loop + plays the mog song once
+    showMogTakeover();
+    this.time.delayedCall(1900, () => {
+      if (!this.leaving) this.showResult(snap);
+    });
+  }
+
   private showResult(snap: RoomStateSnapshot): void {
     if (!snap.result) return;
     const me = this.findMe();
@@ -686,11 +717,13 @@ export class VersusScene extends Phaser.Scene {
     const touchMount = document.getElementById('touch-controls-mount');
     if (touchMount) touchMount.innerHTML = '';
     document.body.classList.remove('versus-stage');
+    hideMogTakeover();
     // Drop any lingering brainrot FX so they don't bleed into the next scene.
     setBgTier(0);
     this.shake?.stop();
     this.flames?.destroy();
     this.embers?.destroy();
+    this.sfx?.stopMusic();
     this.scale.resize(300, 600);
     this.roomClient.leave();
   }

@@ -85,8 +85,10 @@ Built with esbuild (`build:server`) → `packages/server/dist/index.js`. esbuild
     snapshot); a left-edge **incoming-garbage telegraph** (amber = cancelable,
     pulsing red = past the cancel window); the full **clear FX/juice** reused from
     solo (`fx/*` flames/embers/shake/bg-glow + `ui/reactions`), driven by my own
-    `lastLockEvent` tier; the result overlay with a **REMATCH** button (re-queues
-    via Lobby) + BACK TO MENU; and **client-side reconnect** on a mid-match drop.
+    `lastLockEvent` tier; **gameplay music** (start on `GO!`) and a **game-over mog
+    takeover** (`ui/mogTakeover` + the mog song) shown on both clients; the result
+    overlay with a **REMATCH** button (re-queues via Lobby) + BACK TO MENU; and
+    **client-side reconnect** on a mid-match drop.
 - `src/net/room.ts` — `RoomClient`: thin wrapper over `colyseus.js`. `join('versus')`,
   snapshot listener, leave, and `reconnect()` (resumes the same session via the
   stored `reconnectionToken` within the server's grace window; a deliberate
@@ -94,8 +96,14 @@ Built with esbuild (`build:server`) → `packages/server/dist/index.js`. esbuild
   `ws://localhost:8080` in dev, same-origin in prod.
 - `src/input.ts` — keyboard bindings + DAS/ARR key repeat; shared by both play scenes.
 - `src/ui/` — `overlay`, `hud`, `chat`, `leaderboard`, `reactions`, `phrases`,
-  `touch` (mobile on-screen controls).
-- `src/audio/sfx.ts` — sound effects (clears, streak loss, etc.).
+  `touch` (mobile on-screen controls), `mogTakeover` (versus game-over DOM/CSS
+  overlay: mogface fade-in + TV-static flash).
+- `src/audio/sfx.ts` — `Sfx`: one-shot SFX (clears, streak loss, charlie
+  high-score sting) **and** background music. Music is a gapless **intro → looping
+  loop** scheduled on raw WebAudio (sample-accurate `start(when)`) routed through
+  Phaser's master node so mute/volume apply; `startMusic`/`stopMusic`, charlie
+  ducks the loop to silence while it plays, and `playMog` is the versus game-over
+  sting. `MUSIC_FILES`/`SFX_FILES` are both preloaded by `BootScene`.
 - `src/fx/` — `bgglow`, `embers`, `flames`, `shake`, `textures` (visual juice).
 - `src/persistence/store.ts` — `localStorage`: best score, handle, mute.
 - `src/style.css` — all styling. `body.versus-stage …` rules re-scope the layout
