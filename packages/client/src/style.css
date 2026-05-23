@@ -495,8 +495,14 @@ body[class*="fx-"] .brand { animation-delay: -.025s; }
   box-shadow: 0 10px 30px rgba(41, 228, 255, .35), inset 0 1px 0 rgba(255, 255, 255, .3);
 }
 
-body.versus-stage .left-col,
 body.versus-stage .right-col { display: none !important; }
+/* Keep the brand wordmark as a compact header above the arena; hide the rest of
+   the left column (stats/keys panels) which don't apply to versus. */
+body.versus-stage .left-col > :not(.brand) { display: none !important; }
+body.versus-stage .left-col { gap: 0; }
+body.versus-stage .brand { padding: 10px 18px; border-radius: 16px; }
+body.versus-stage .brand .wordmark { font-size: 40px; }
+body.versus-stage .brand .tag { display: none; }
 body.versus-stage .app { grid-template-columns: minmax(0, 1fr); padding: 8px 12px; justify-items: center; }
 body.versus-stage .stage { width: 100%; max-width: 520px; gap: 8px; }
 /* per-board frames live INSIDE the canvas — kill the outer .board-wrap chrome */
