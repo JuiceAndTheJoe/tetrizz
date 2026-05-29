@@ -12,6 +12,7 @@ export class LobbyScene extends Phaser.Scene {
   private roomClient!: RoomClient;
   private leaveTimer?: number;
   private handedOff = false;
+  private cancelling = false;
 
   constructor() {
     super('Lobby');
@@ -19,6 +20,8 @@ export class LobbyScene extends Phaser.Scene {
 
   init(data: LobbyData): void {
     const handle = data?.handle ?? '@anon';
+    this.handedOff = false;
+    this.cancelling = false;
     this.roomClient = new RoomClient();
     this.roomClient.setListener((snap, sessionId) => this.onSnapshot(snap, sessionId));
     this.roomClient.onLeave(() => this.handleDisconnect());
@@ -37,6 +40,7 @@ export class LobbyScene extends Phaser.Scene {
     });
 
     document.getElementById('ov-btn')?.addEventListener('click', this.cancel);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.teardown());
   }
 
   private onSnapshot(snap: RoomStateSnapshot, mySessionId: string): void {
@@ -61,12 +65,15 @@ export class LobbyScene extends Phaser.Scene {
   }
 
   private cancel = (): void => {
+    if (this.cancelling) return;
+    this.cancelling = true;
     this.roomClient.leave();
+    hideOverlay();
     this.scene.start('Menu');
   };
 
   private handleDisconnect(): void {
-    if (this.scene.key !== 'Lobby') return;
+    if (this.cancelling || this.handedOff) return;
     this.showError('connection lost. try again.');
   }
 
@@ -81,7 +88,7 @@ export class LobbyScene extends Phaser.Scene {
     this.leaveTimer = window.setTimeout(() => this.cancel(), 60_000);
   }
 
-  shutdown(): void {
+  private teardown(): void {
     document.getElementById('ov-btn')?.removeEventListener('click', this.cancel);
     if (this.leaveTimer) window.clearTimeout(this.leaveTimer);
   }

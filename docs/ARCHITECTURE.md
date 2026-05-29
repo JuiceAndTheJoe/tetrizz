@@ -45,11 +45,17 @@ Built with esbuild (`build:server`) → `packages/server/dist/index.js`. esbuild
   room on the same http server Express uses (OSC is single-port). WS upgrades go
   to Colyseus; HTTP stays with Express.
 - `src/rooms/VersusRoom.ts` — **authoritative** 1v1 room, the heart of versus:
-  - max 2 clients; `waiting → countdown → playing → finished`.
+  - max 2 clients; `waiting → countdown → playing → finished` (→ countdown again on
+    rematch).
   - **single-use room**: explicitly `lock()`s when the match starts so it's never
-    re-matchmade into, then `disconnect()`s ~5 s after `finished`. A rematch is a
-    fresh `joinOrCreate` from the lobby — without the lock, Colyseus auto-unlocks
-    on the first leave and re-queuing players land back in the dead room.
+    re-matchmade into, then `disconnect()`s ~30 s after `finished` unless both
+    players opt into a rematch first.
+  - **rematch protocol**: clients send `'rematch'` while the room is `finished`;
+    the room collects sessionIds in `rematchReady`. Once both connected players are
+    ready it clears `result`, picks a fresh seed, resets all per-player state, and
+    re-runs `startCountdown()` in-place — no scene/lobby round-trip. If a player
+    leaves the room mid-window (consented `BACK TO MENU`), the room broadcasts
+    `'rematchAborted'` to whoever's left and tears itself down shortly after.
   - 30 Hz tick: drain each player's input queue, advance gravity, flush ripe
     garbage, KO check, then `broadcast('snapshot', RoomStateSnapshot)` with both
     players' full state every tick.
@@ -87,7 +93,9 @@ Built with esbuild (`build:server`) → `packages/server/dist/index.js`. esbuild
     solo (`fx/*` flames/embers/shake/bg-glow + `ui/reactions`), driven by my own
     `lastLockEvent` tier; **gameplay music** (start on `GO!`) and a **game-over mog
     takeover** (`ui/mogTakeover` + the mog song) shown on both clients; the result
-    overlay with a **REMATCH** button (re-queues via Lobby) + BACK TO MENU; and
+    overlay with a **REMATCH** button (sends `'rematch'` to the same room — once both
+    players opt in the room restarts in-place; if the opp bails or the 30 s window
+    expires, the client parks on a `BACK TO MENU` overlay) + BACK TO MENU; and
     **client-side reconnect** on a mid-match drop.
 - `src/net/room.ts` — `RoomClient`: thin wrapper over `colyseus.js`. `join('versus')`,
   snapshot listener, leave, and `reconnect()` (resumes the same session via the

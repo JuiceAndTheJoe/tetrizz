@@ -62,6 +62,10 @@ export class VersusRoom extends Room {
   private garbageRngState = 0;
   private dbMatchId: number | null = null;
   private result: MatchResult | undefined;
+  /** Sessions that have asked to rematch in the current 'finished' window. */
+  private rematchReady: Set<string> = new Set();
+  /** Disconnect timer set when entering 'finished'. Cleared on a successful rematch. */
+  private rematchTimer: NodeJS.Timeout | null = null;
 
   override onCreate(options: RoomCreateOptions): void {
     this.pool = options.pool ?? null;
@@ -70,6 +74,7 @@ export class VersusRoom extends Room {
 
     this.onMessage('input', (client, msg: ClientInput) => this.handleInput(client, msg));
     this.onMessage('pong', () => {/* client liveness ack */});
+    this.onMessage('rematch', (client) => this.handleRematch(client));
   }
 
   override onJoin(client: Client, options: JoinOptions): void {
@@ -105,6 +110,18 @@ export class VersusRoom extends Room {
       return;
     }
 
+    if (this.phase === 'finished' && consented) {
+      // Post-match leave (back-to-menu / cancel-during-rematch). Rematch is off the
+      // table once anyone walks; tell the other client and tear down the room shortly.
+      this.rematchReady.delete(client.sessionId);
+      this.players = this.players.filter((p) => p !== slot);
+      this.broadcast('rematchAborted', { reason: 'oppLeft' });
+      this.broadcastSnapshot();
+      if (this.rematchTimer) clearTimeout(this.rematchTimer);
+      this.rematchTimer = setTimeout(() => this.disconnect(), 1500);
+      return;
+    }
+
     if (consented) {
       this.forfeit(slot);
       return;
@@ -128,6 +145,7 @@ export class VersusRoom extends Room {
   override onDispose(): void {
     if (this.tickHandle) clearInterval(this.tickHandle);
     if (this.countdownHandle) clearTimeout(this.countdownHandle);
+    if (this.rematchTimer) clearTimeout(this.rematchTimer);
   }
 
   // ---------- input ----------
@@ -400,9 +418,62 @@ export class VersusRoom extends Room {
       clearInterval(this.tickHandle);
       this.tickHandle = null;
     }
+    this.rematchReady.clear();
     void this.writeMatchResults();
     this.broadcastSnapshot();
-    this.clock.setTimeout(() => this.disconnect(), 5000);
+    // Give both clients a window to opt into a rematch before tearing the room down.
+    if (this.rematchTimer) clearTimeout(this.rematchTimer);
+    this.rematchTimer = setTimeout(() => this.disconnect(), 30_000);
+  }
+
+  // ---------- rematch ----------
+
+  private handleRematch(client: Client): void {
+    if (this.phase !== 'finished') return;
+    const slot = this.findSlot(client.sessionId);
+    if (!slot) return;
+    this.rematchReady.add(client.sessionId);
+    this.broadcast('rematchStatus', {
+      ready: [...this.rematchReady],
+      needed: this.players.length,
+    });
+    if (this.players.length >= 2 && this.players.every((p) => p.sessionId && this.rematchReady.has(p.sessionId))) {
+      this.restartMatch();
+    }
+  }
+
+  private restartMatch(): void {
+    if (this.rematchTimer) {
+      clearTimeout(this.rematchTimer);
+      this.rematchTimer = null;
+    }
+    if (this.countdownHandle) {
+      clearTimeout(this.countdownHandle);
+      this.countdownHandle = null;
+    }
+    this.rematchReady.clear();
+    this.result = undefined;
+    this.tickCounter = 0;
+    this.startsAtTick = undefined;
+    this.dbMatchId = null;
+    // Fresh seed so the piece sequence isn't a replay of the last match.
+    this.seed = (Date.now() ^ Math.floor(Math.random() * 0x7fffffff)) | 0;
+    this.garbageRngState = (this.seed * 0x9e3779b1) | 0;
+    for (const p of this.players) {
+      p.state.gameState = createGame(this.seed);
+      p.state.attackQueue = [];
+      p.state.totalAttackSent = 0;
+      p.state.totalAttackReceived = 0;
+      p.state.koAt = null;
+      p.state.lastLockEvent = null;
+      p.state.disconnected = false;
+      p.inputQueue = [];
+      p.gravityAccumulatorMs = 0;
+      p.lastClearWasTetris = false;
+      p.pendingLockEvent = null;
+    }
+    this.phase = 'waiting';
+    this.startCountdown();
   }
 
   private async insertMatchRow(): Promise<number | null> {

@@ -102,6 +102,8 @@ export class VersusScene extends Phaser.Scene {
   private reconnecting = false;
   private musicStarted = false;
   private matchOverDone = false;
+  /** True after we send 'rematch' and we're waiting on the opponent. */
+  private rematchPending = false;
 
   constructor() {
     super('Versus');
@@ -116,6 +118,7 @@ export class VersusScene extends Phaser.Scene {
     this.reconnecting = false;
     this.musicStarted = false;
     this.matchOverDone = false;
+    this.rematchPending = false;
     this.currentFxTier = 0;
     this.prevTier = 0;
     this.dirty = false;
@@ -152,6 +155,7 @@ export class VersusScene extends Phaser.Scene {
 
     this.mountHud();
     this.roomClient.onLeave(() => this.onServerLeave());
+    this.roomClient.onRematchAborted(() => this.onRematchAborted());
     this.roomClient.setListener((snap) => this.onSnapshot(snap));
 
     const bindings: InputBindings = {
@@ -197,6 +201,11 @@ export class VersusScene extends Phaser.Scene {
     this.snapshot = snap;
     this.applyClearFx(snap);
     this.dirty = true;
+    // Server accepted both rematch requests and re-started the room.
+    if (prevPhase === 'finished' && (snap.phase === 'countdown' || snap.phase === 'playing')) {
+      this.onRematchStarted(snap);
+      return;
+    }
     if (snap.phase === 'playing' && prevPhase !== 'playing') this.onPlayingStart();
     // Once I'm out, kill the persistent fire even if the match is still live.
     const me = this.findMe();
@@ -205,6 +214,27 @@ export class VersusScene extends Phaser.Scene {
       this.applyTier(0);
       this.onMatchOver(snap);
     }
+  }
+
+  /** Server flipped us back into a fresh countdown — wipe the result UI and run it back. */
+  private onRematchStarted(snap: RoomStateSnapshot): void {
+    this.rematchPending = false;
+    this.matchOverDone = false;
+    this.leaving = false;
+    this.reconnecting = false;
+    this.musicStarted = false;
+    this.currentFxTier = 0;
+    this.prevTier = 0;
+    this.prevLockTicks.clear();
+    this.applyTier(0);
+    hideMogTakeover();
+    this.clearOverlayHandlers();
+    hideOverlay();
+    this.sfx.stopMusic();
+    this.drawDynamic();
+    this.updateHud();
+    if (snap.phase === 'countdown') this.startCountdownDisplay(snap);
+    else this.startMusicOnce();
   }
 
   override update(): void {
@@ -591,17 +621,65 @@ export class VersusScene extends Phaser.Scene {
     const sub = snap.result.players
       .map((p) => `<b>${escapeHtml(p.handle)}</b>: ${p.score.toLocaleString()} rizz · ${p.attackSent} sent · ${p.attackReceived} eaten`)
       .join('<br>');
-    const myHandle = me?.handle ?? '';
     this.showChoiceOverlay({
       title,
       subHtml: sub + '<br><br>run it back?',
       primaryText: 'REMATCH',
-      onPrimary: () => this.toRematch(myHandle),
+      onPrimary: () => this.requestRematch(),
+    });
+  }
+
+  /** Tell the server we want a rematch and wait for the opponent to also accept. */
+  private requestRematch(): void {
+    if (this.rematchPending) return;
+    this.rematchPending = true;
+    this.roomClient.sendRematch();
+    const opp = this.findOpp();
+    const oppHandle = opp?.handle ?? 'your opp';
+    this.showChoiceOverlay({
+      title: 'WAITING ON OPP',
+      subHtml: `you wanna run it back. <b>${escapeHtml(oppHandle)}</b> hasn't clicked yet — they got 30s.`,
+      primaryText: 'WAITING…',
+      onPrimary: () => {/* no-op: opp has to also click rematch */},
+    });
+    const primary = document.getElementById('ov-btn');
+    if (primary instanceof HTMLButtonElement) primary.disabled = true;
+    setStatus('rematch pending…');
+  }
+
+  /** Server says rematch fell through (opp bailed). Park on a back-to-menu screen. */
+  private onRematchAborted(): void {
+    if (this.leaving) return;
+    this.rematchPending = false;
+    const primary = document.getElementById('ov-btn');
+    if (primary instanceof HTMLButtonElement) primary.disabled = false;
+    this.showChoiceOverlay({
+      title: 'OPP DIPPED',
+      subHtml: 'they bailed before the rematch could lock in.',
+      primaryText: 'BACK TO MENU',
+      onPrimary: () => this.toMenu(),
+      secondary: false,
     });
   }
 
   private onServerLeave(): void {
-    if (this.leaving || this.snapshot.phase === 'finished') return;
+    if (this.leaving) return;
+    if (this.snapshot.phase === 'finished') {
+      // Post-match disconnect — the rematch window expired or the room died.
+      // Park on a back-to-menu overlay instead of attempting to reconnect.
+      const wasWaiting = this.rematchPending;
+      this.rematchPending = false;
+      this.showChoiceOverlay({
+        title: wasWaiting ? 'OPP DIPPED' : 'ROOM CLOSED',
+        subHtml: wasWaiting
+          ? 'they bailed before locking in the rematch.'
+          : 'nobody locked in for the rematch. back to menu.',
+        primaryText: 'BACK TO MENU',
+        onPrimary: () => this.toMenu(),
+        secondary: false,
+      });
+      return;
+    }
     // The WS dropped mid-match. The server holds the slot open for
     // RECONNECT_SECONDS — try to slide back in before declaring it lost.
     void this.attemptReconnect();
@@ -662,7 +740,8 @@ export class VersusScene extends Phaser.Scene {
     const primary = document.getElementById('ov-btn');
     const menuBtn = document.getElementById('ov-btn-vs');
     this.clearOverlayHandlers();
-    if (primary) {
+    if (primary instanceof HTMLButtonElement) {
+      primary.disabled = false;
       this.primaryHandler = () => opts.onPrimary();
       primary.addEventListener('click', this.primaryHandler);
     }
@@ -693,11 +772,6 @@ export class VersusScene extends Phaser.Scene {
   private toMenu(): void {
     this.leaving = true;
     this.scene.start('Menu');
-  }
-
-  private toRematch(handle: string): void {
-    this.leaving = true;
-    this.scene.start('Lobby', { handle });
   }
 
   private teardown(): void {

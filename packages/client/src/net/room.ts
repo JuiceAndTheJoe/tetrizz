@@ -18,6 +18,7 @@ export class RoomClient {
   private room: Room | null = null;
   private listener: RoomListener | null = null;
   private onLeaveCb: (() => void) | null = null;
+  private onRematchAbortedCb: (() => void) | null = null;
   private lastSnapshot: RoomStateSnapshot | null = null;
   /** Captured after join; lets us resume the same session within the server's grace window. */
   private reconnectionToken: string | null = null;
@@ -65,6 +66,7 @@ export class RoomClient {
     room.onMessage('ping', () => {
       room.send('pong', {});
     });
+    room.onMessage('rematchAborted', () => this.onRematchAbortedCb?.());
     room.onLeave(() => {
       // A deliberate leave() shouldn't kick off the scene's reconnect/disconnect UI.
       if (this.intentional) return;
@@ -76,8 +78,16 @@ export class RoomClient {
     this.onLeaveCb = cb;
   }
 
+  onRematchAborted(cb: () => void): void {
+    this.onRematchAbortedCb = cb;
+  }
+
   sendInput(msg: ClientInput): void {
     this.room?.send('input', msg);
+  }
+
+  sendRematch(): void {
+    this.room?.send('rematch', {});
   }
 
   get sessionId(): string | null {
