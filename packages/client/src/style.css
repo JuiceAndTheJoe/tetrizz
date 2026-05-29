@@ -494,6 +494,12 @@ body[class*="fx-"] .brand { animation-delay: -.025s; }
   background: linear-gradient(180deg, #29e4ff, #0a6e8c);
   box-shadow: 0 10px 30px rgba(41, 228, 255, .35), inset 0 1px 0 rgba(255, 255, 255, .3);
 }
+.btn-menu {
+  display: block;
+  margin: 10px auto 0;
+  background: linear-gradient(180deg, #6b6f7a, #2c2f38);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .4), inset 0 1px 0 rgba(255, 255, 255, .2);
+}
 
 body.versus-stage .right-col { display: none !important; }
 /* TETRIZZ stays pinned to the top-left corner, out of the arena's centered flow;

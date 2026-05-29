@@ -372,15 +372,24 @@ export class GameScene extends Phaser.Scene {
     if (this.paused) {
       showOverlay({
         title: 'BRB MEWING',
-        subHtml: 'paused. hit <b>P</b>/<b>Esc</b> or click to lock back in.',
+        subHtml: 'paused. hit <b>P</b>/<b>Esc</b> or click resume to lock back in.',
         btnText: 'RESUME COOKING',
         showHandleInput: false,
+        menuBtnText: 'MAIN MENU',
       });
       setStatus('paused');
     } else {
       hideOverlay();
       setStatus('cooking…');
     }
+  }
+
+  private goToMenu(): void {
+    this.running = false;
+    this.paused = false;
+    hideOverlay();
+    this.sfx.stopMusic();
+    this.scene.start('Menu');
   }
 
   private onDie(): void {
@@ -421,15 +430,24 @@ export class GameScene extends Phaser.Scene {
   private setupOverlay(): void {
     const o = getOverlay();
     o.handleInput.value = this.handle ?? '';
-    o.btn.addEventListener('click', () => {
+    const onBtnClick = () => {
       if (this.dead || !this.running) this.startFromOverlay();
       else this.togglePause();
-    });
-    o.handleInput.addEventListener('keydown', (e) => {
+    };
+    const onMenuClick = () => this.goToMenu();
+    const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Enter') {
         e.preventDefault();
         if (!this.running) this.startFromOverlay();
       }
+    };
+    o.btn.addEventListener('click', onBtnClick);
+    o.menuBtn.addEventListener('click', onMenuClick);
+    o.handleInput.addEventListener('keydown', onKey);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      o.btn.removeEventListener('click', onBtnClick);
+      o.menuBtn.removeEventListener('click', onMenuClick);
+      o.handleInput.removeEventListener('keydown', onKey);
     });
   }
 
