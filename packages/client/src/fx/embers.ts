@@ -32,11 +32,13 @@ export class EmberEmitter {
       this.emitter.stop();
       return;
     }
-    // frequency = ms between emissions; quantity = particles per emission
+    // frequency = ms between emissions; quantity = particles per emission.
+    // Tier-3 was emitting ~3 particles every 70 ms with up to 2.4 s lifespan →
+    // ~100 simultaneous embers; halved for breathing room.
     const config: Record<1 | 2 | 3, { frequency: number; quantity: number }> = {
-      1: { frequency: 260, quantity: 1 },
-      2: { frequency: 140, quantity: 2 },
-      3: { frequency: 70, quantity: 3 },
+      1: { frequency: 320, quantity: 1 },
+      2: { frequency: 180, quantity: 2 },
+      3: { frequency: 110, quantity: 2 },
     };
     const cfg = config[tier as 1 | 2 | 3];
     this.emitter.setFrequency(cfg.frequency, cfg.quantity);

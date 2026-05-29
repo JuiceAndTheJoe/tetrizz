@@ -53,24 +53,24 @@ body::after {
 /* ---------- 130 BPM screen-wide pulse (toggled when "charlie" plays) ----------
    130 BPM → 60000 / 130 ≈ 461.5 ms per beat. The pulse opens on the downbeat
    (peak scale + brightness) and decays through the cycle, so each repeat reads
-   like a kick. We split the work: body gets the filter flash (cheap, cascades
-   over everything including the bg-glow + grid overlays), and .app gets the
-   scale so the existing fx-* shake on individual panels still composes. */
+   like a kick. Both filter + transform are scoped to `.app` — applying `filter`
+   directly to `body` forces the browser to recomposite the entire viewport at
+   60 Hz for the full 7+ second charlie song, which on slower GPUs absolutely
+   tanks the framerate. Same for saturate/contrast, which compound the cost. */
 @keyframes beat130-flash {
-  0%   { filter: brightness(1.32) saturate(1.5)  contrast(1.05); }
-  100% { filter: brightness(1)    saturate(1)    contrast(1); }
+  0%   { filter: brightness(1.28); }
+  100% { filter: brightness(1); }
 }
 @keyframes beat130-pulse {
   0%   { transform: scale(1.022); }
   100% { transform: scale(1); }
 }
-body.beat-130 {
-  animation: beat130-flash 461.5ms ease-out infinite;
-}
 body.beat-130 .app {
-  animation: beat130-pulse 461.5ms ease-out infinite;
+  animation:
+    beat130-flash 461.5ms ease-out infinite,
+    beat130-pulse 461.5ms ease-out infinite;
   transform-origin: center center;
-  will-change: transform;
+  will-change: transform, filter;
 }
 .bg-glow {
   position: fixed; inset: 0; z-index: 0;

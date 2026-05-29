@@ -3,7 +3,7 @@ import {
   createGame, fxTier, inputHardDrop, inputHold, inputMove, inputRotate,
   inputSoftDrop, META, SHAPES, tickGravity, cellColor,
   COLS, ROWS,
-  type GameState, type LockEvent, type Piece,
+  type GameState, type LockEvent, type Piece, type PieceType,
 } from '@tetrizz/shared';
 import { Sfx, exposeTuneHelpers } from '../audio/sfx.ts';
 import { bindInput } from '../input.ts';
@@ -26,6 +26,22 @@ const CELL = 30;
 const BOARD_X = 0;
 const BOARD_Y = 0;
 
+/** Pre-parsed cell colors — hex string → packed int. Avoids
+ *  re-parsing on every cell, every frame. */
+const CELL_COLOR_INT: Record<PieceType | 'G', number> = (() => {
+  const keys: (PieceType | 'G')[] = ['I', 'O', 'T', 'S', 'Z', 'J', 'L', 'G'];
+  const out = {} as Record<PieceType | 'G', number>;
+  for (const k of keys) out[k] = Phaser.Display.Color.HexStringToColor(cellColor(k)).color;
+  return out;
+})();
+const PIECE_COLOR_INT: Record<PieceType, number> = (() => {
+  const out = {} as Record<PieceType, number>;
+  (['I', 'O', 'T', 'S', 'Z', 'J', 'L'] as PieceType[]).forEach((k) => {
+    out[k] = Phaser.Display.Color.HexStringToColor(META[k].color).color;
+  });
+  return out;
+})();
+
 export class GameScene extends Phaser.Scene {
   private state!: GameState;
   private boardGfx!: Phaser.GameObjects.Graphics;
@@ -43,6 +59,9 @@ export class GameScene extends Phaser.Scene {
   private dead = false;
   private currentFxTier: 0 | 1 | 2 | 3 = 0;
   private gravityAccumulator = 0;
+  /** Set when gameplay state changed since last draw; gates renderAll() so we
+   *  don't redraw 60×/s when nothing moved between gravity ticks. */
+  private renderDirty = true;
 
   private best = 0;
   private sessionStartBest = 0;
@@ -121,16 +140,26 @@ export class GameScene extends Phaser.Scene {
   }
 
   override update(_time: number, deltaMs: number): void {
-    if (!this.running || this.paused || this.dead) return;
+    if (!this.running || this.paused || this.dead) {
+      if (this.renderDirty) {
+        this.renderAll();
+        this.renderDirty = false;
+      }
+      return;
+    }
     this.gravityAccumulator += deltaMs;
     while (this.gravityAccumulator >= this.state.dropIntervalMs) {
       this.gravityAccumulator -= this.state.dropIntervalMs;
       const r = tickGravity(this.state);
       this.state = r.state;
+      this.renderDirty = true;
       if (r.lockEvent) this.onLock(r.lockEvent);
       if (this.dead) break;
     }
-    this.renderAll();
+    if (this.renderDirty) {
+      this.renderAll();
+      this.renderDirty = false;
+    }
   }
 
   // ---------- state mutation hooks ----------
@@ -138,15 +167,15 @@ export class GameScene extends Phaser.Scene {
   private handleInput(transform: (s: GameState) => GameState): void {
     if (!this.running || this.paused || this.dead) return;
     this.state = transform(this.state);
-    this.renderAll();
+    this.renderDirty = true;
   }
 
   private handleStepInput(transform: (s: GameState) => { state: GameState; lockEvent?: LockEvent }): void {
     if (!this.running || this.paused || this.dead) return;
     const r = transform(this.state);
     this.state = r.state;
+    this.renderDirty = true;
     if (r.lockEvent) this.onLock(r.lockEvent);
-    this.renderAll();
   }
 
   private onLock(ev: LockEvent): void {
@@ -238,10 +267,11 @@ export class GameScene extends Phaser.Scene {
     this.pieceGfx.clear();
 
     for (let r = 0; r < ROWS; r++) {
+      const row = this.state.grid[r];
       for (let c = 0; c < COLS; c++) {
-        const v = this.state.grid[r][c];
+        const v = row[c];
         if (v === 0) continue;
-        this.drawCell(this.boardGfx, c, r, cellColor(v), false);
+        this.drawCell(this.boardGfx, c, r, CELL_COLOR_INT[v], false);
       }
     }
 
@@ -274,7 +304,7 @@ export class GameScene extends Phaser.Scene {
 
   private drawPiece(gfx: Phaser.GameObjects.Graphics, p: Piece, ghost: boolean): void {
     const s = SHAPES[p.type][p.rot];
-    const color = META[p.type].color;
+    const color = PIECE_COLOR_INT[p.type];
     for (let r = 0; r < s.length; r++) {
       for (let c = 0; c < s[r].length; c++) {
         if (!s[r][c]) continue;
@@ -285,10 +315,9 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private drawCell(gfx: Phaser.GameObjects.Graphics, col: number, row: number, hexColor: string, ghost: boolean): void {
+  private drawCell(gfx: Phaser.GameObjects.Graphics, col: number, row: number, color: number, ghost: boolean): void {
     const px = BOARD_X + col * CELL;
     const py = BOARD_Y + row * CELL;
-    const color = Phaser.Display.Color.HexStringToColor(hexColor).color;
     if (ghost) {
       gfx.lineStyle(1.2, color, 0.55);
       gfx.strokeRoundedRect(px + 2, py + 2, CELL - 4, CELL - 4, 4);
@@ -298,9 +327,10 @@ export class GameScene extends Phaser.Scene {
     }
     gfx.fillStyle(color, 1);
     gfx.fillRoundedRect(px + 1, py + 1, CELL - 2, CELL - 2, 5);
-    // top highlight
+    // top highlight — plain fillRect is cheaper than rounded and visually equivalent
+    // under the rounded body cell.
     gfx.fillStyle(0xffffff, 0.28);
-    gfx.fillRoundedRect(px + 2, py + 2, CELL - 4, (CELL - 4) / 2, 3);
+    gfx.fillRect(px + 2, py + 2, CELL - 4, (CELL - 4) / 2);
     // bottom + right shadow streaks
     gfx.fillStyle(0x000000, 0.32);
     gfx.fillRect(px + CELL - 4, py + 3, 2, CELL - 6);
@@ -332,6 +362,7 @@ export class GameScene extends Phaser.Scene {
     this.currentFxTier = 0;
     this.highScoreAnnounced = false;
     this.sessionStartBest = this.best;
+    this.renderDirty = true;
     setBgTier(0);
     this.shake.setTier(0);
     this.flames.setTier(0);
@@ -344,7 +375,7 @@ export class GameScene extends Phaser.Scene {
     hideOverlay();
     setStatus('cooking…');
     this.hudFromState();
-    this.renderAll();
+    this.renderDirty = true;
     this.sfx.startMusic();
   }
 

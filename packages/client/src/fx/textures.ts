@@ -28,8 +28,9 @@ export function ensureTextures(scene: Phaser.Scene): void {
     ]);
   }
   if (!scene.textures.exists(TEX.flameLow)) {
-    // bigger, softer for body of flames
-    softCircle(scene, TEX.flameLow, 128, [
+    // bigger, softer for body of flames — 64px is plenty when the particle
+    // scales down to 0.25 anyway, and a smaller texture = less overdraw.
+    softCircle(scene, TEX.flameLow, 64, [
       { stop: 0.0, color: 'rgba(255,240,180,0.95)' },
       { stop: 0.35, color: 'rgba(255,150,30,0.8)' },
       { stop: 0.7, color: 'rgba(255,60,0,0.35)' },

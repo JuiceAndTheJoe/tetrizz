@@ -58,10 +58,12 @@ export class FlameEmitter {
     }
     // milder at tier 1, full inferno at tier 3 — modulate density via frequency
     // (alpha range stays as configured in the constructor; particle count carries the intensity).
+    // Trimmed from 40/60ms on tier 3 — three concurrent emitters with additive
+    // blending were the dominant GPU cost during a hot board.
     const cfg: Record<1 | 2 | 3, { lowFreq: number; highFreq: number }> = {
-      1: { lowFreq: 180, highFreq: 280 },
-      2: { lowFreq: 80,  highFreq: 130 },
-      3: { lowFreq: 40,  highFreq: 60 },
+      1: { lowFreq: 220, highFreq: 340 },
+      2: { lowFreq: 110, highFreq: 180 },
+      3: { lowFreq: 70,  highFreq: 110 },
     };
     const c = cfg[tier as 1 | 2 | 3];
     this.low.setFrequency(c.lowFreq, 1);
